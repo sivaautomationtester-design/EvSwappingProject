@@ -1,0 +1,41 @@
+{
+  "name": "acme-playwright-framework",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Enterprise Playwright TypeScript E2E automation framework",
+  "scripts": {
+    "test": "playwright test",
+    "test:e2e": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:chromium": "playwright test --project=chromium",
+    "test:firefox": "playwright test --project=firefox",
+    "test:mobile": "playwright test --project=mobile-chrome",
+    "report": "playwright show-report",
+    "codegen": "node utils/codegen-with-session.js",
+    "allure:clean": "node -e \"require('node:fs').rmSync('allure-report', { recursive: true, force: true })\"",
+    "allure:generate": "npm run allure:clean && allure generate allure-results --output allure-report",
+    "allure:open": "allure open allure-report",
+    "allure:serve": "allure serve allure-results",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "^24.0.0",
+    "allure": "3.18.0",
+    "allure-playwright": "3.12.2",
+    "dotenv": "^17.0.0",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^10.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "mqtt": "^5.16.0"
+  }
+}

@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Automation Report</title>
+<style>
+:root {
+  --bg: #f4f4f4;
+  --surface: #ffffff;
+  --border: #ececec;
+  --text: #141414;
+  --muted: #6f6f6f;
+  --sidebar: #fff6ea;
+  --sidebar-hover: #fdebd2;
+  --sidebar-active: #fde3bd;
+  --brand: #f5a81c;
+  --green: #0b7a3b;
+  --green-2: #2f9e5b;
+  --green-bg: #e7f5ec;
+  --red: #d7262f;
+  --red-bg: #fdecec;
+  --purple: #6b4fbb;
+  --purple-bg: #f0ecfb;
+  --amber: #b26a00;
+  --amber-bg: #fff3dc;
+  --grey: #9a9a9a;
+  --grey-bg: #f0f0f0;
+  --side-w: 310px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--text); min-height: 100vh;
+  font: 14px/1.45 "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+}
+button, input { font: inherit; }
+button { cursor: pointer; }
+
+/* ---------- top header (white, like the portal) ---------- */
+.top-header {
+  height: 72px; background: var(--surface); display: flex; align-items: center;
+  position: sticky; top: 0; z-index: 20; box-shadow: 0 1px 3px rgba(0,0,0,.08);
+}
+.brand-cell { width: var(--side-w); flex: 0 0 var(--side-w); display: flex; align-items: center; gap: 12px; padding-left: 22px; }
+.logo-badge {
+  display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%;
+  background: var(--brand); color: #fff; font-weight: 800; font-style: italic; font-size: 16px;
+}
+.brand-divider { width: 1px; height: 32px; background: var(--text); }
+.brand-name { font-weight: 800; font-size: 24px; letter-spacing: .5px; }
+.menu-toggle { border: 0; background: transparent; font-size: 22px; color: var(--green); padding: 8px 14px; }
+.brand-center { flex: 1; display: flex; justify-content: center; min-width: 0; }
+.brand-title { font-weight: 800; font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.header-actions { display: flex; align-items: center; gap: 16px; padding-right: 24px; color: var(--muted); font-size: 12.5px; }
+.env-pill { background: #fff6ea; color: var(--text); border: 1px solid #f3dcb8; border-radius: 16px; padding: 4px 12px; font-weight: 800; }
+.live { color: var(--amber); font-weight: 700; }
+.bell { position: relative; display: grid; place-items: center; width: 30px; height: 30px; color: #555; }
+.bell svg { width: 22px; height: 22px; fill: currentColor; }
+.bell-badge {
+  position: absolute; top: -4px; right: -6px; min-width: 18px; height: 18px; border-radius: 9px; background: var(--red);
+  color: #fff; font-style: normal; font-size: 10.5px; font-weight: 700; display: grid; place-items: center; padding: 0 4px;
+}
+
+/* ---------- layout ---------- */
+.content-shell { display: flex; align-items: flex-start; min-height: calc(100vh - 72px); }
+.sidebar {
+  width: var(--side-w); flex: 0 0 var(--side-w); background: var(--sidebar); border-right: 1px solid #f3e4cc;
+  position: sticky; top: 72px; height: calc(100vh - 72px); overflow-y: auto; padding: 10px 0 30px;
+}
+.app-shell.collapsed .sidebar { display: none; }
+.main-content { flex: 1; min-width: 0; padding: 22px 26px 50px; }
+
+/* ---------- side menu (portal style) ---------- */
+.nav-main {
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 0 14px 0 16px;
+  border: 0; background: none; color: var(--text); text-align: left; font-size: 15.5px;
+}
+.nav-main:hover, .nav-sub:hover { background: var(--sidebar-hover); }
+.nav-icon { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; flex: 0 0 36px; color: var(--text); }
+.nav-icon svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.nav-group.has-active > .nav-main .nav-icon, .nav-main.active .nav-icon { background: var(--brand); color: #fff; }
+.nav-main.active, .nav-group.has-active > .nav-main { font-weight: 700; }
+.nav-label, .nav-sub-label { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nav-chev { width: 16px; height: 16px; flex: 0 0 16px; fill: none; stroke: currentColor; stroke-width: 2; transition: transform .15s; }
+.nav-group.open > .nav-main .nav-chev { transform: rotate(90deg); }
+.nav-subs { display: none; padding: 2px 0 8px; }
+.nav-group.open > .nav-subs { display: block; }
+.nav-sub {
+  display: flex; align-items: center; gap: 14px; width: 100%; min-height: 42px; padding: 0 14px 0 34px;
+  border: 0; background: none; color: var(--text); text-align: left; font-size: 14.5px;
+}
+.radio { width: 13px; height: 13px; border-radius: 50%; border: 1.6px solid #555; background: #fff; flex: 0 0 13px; }
+.nav-sub.active { font-weight: 700; background: var(--sidebar-active); }
+.nav-sub.active .radio { background: var(--green); border-color: var(--green); }
+.nav-empty { color: #9b8f80; }
+.nav-empty .nav-icon { color: #8e8478; }
+.cnts { display: inline-flex; gap: 4px; }
+.cnt {
+  min-width: 22px; height: 20px; border-radius: 10px; font-size: 11px; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center; padding: 0 6px;
+}
+.cnt.pass { background: var(--green-bg); color: var(--green); }
+.cnt.fail { background: var(--red); color: #fff; }
+.cnt.known { background: var(--purple-bg); color: var(--purple); }
+
+/* ---------- breadcrumb + summary ---------- */
+.breadcrumb-card { background: var(--surface); border-radius: 10px; padding: 16px 18px; font-size: 15px; border: 1px solid var(--border); }
+.breadcrumb-card b { font-weight: 800; }
+.breadcrumb-card button { border: 0; background: none; padding: 0; color: var(--green); font-weight: 700; }
+.breadcrumb-card button:hover { text-decoration: underline; }
+.breadcrumb-card .sep { color: var(--muted); margin: 0 6px; }
+.summary-header { margin-top: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px 0; }
+.summary-title-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.summary-title-row h1 { margin: 0; font-size: 22px; font-weight: 800; }
+.summary-title-row p { margin: 4px 0 0; color: var(--muted); }
+.run-info { color: var(--muted); font-size: 12.5px; padding-top: 4px; text-align: right; }
+.summary-main { display: flex; align-items: center; justify-content: space-between; padding: 20px 0 18px; gap: 16px; }
+.summary-numbers { display: flex; flex-wrap: wrap; align-items: center; gap: 18px 40px; }
+.metric-label { display: block; color: var(--muted); font-size: 12.5px; margin-bottom: 4px; }
+.metric strong { font-size: 30px; line-height: 1; font-variant-numeric: tabular-nums; }
+.metric.failed strong { color: var(--red); }
+.metric.passed strong { color: var(--green); }
+.metric.known strong { color: var(--purple); }
+.metric.flaky strong { color: var(--amber); }
+.metric.skipped strong { color: var(--grey); }
+.donut-wrap { width: 118px; height: 118px; position: relative; flex: none; margin-right: 12px; }
+.donut { transform: rotate(-90deg); }
+.donut circle { fill: none; stroke-width: 10; }
+.donut .bg { stroke: #efefef; }
+.donut .pass { stroke: var(--green-2); }
+.donut .fail { stroke: var(--red); }
+.donut .known { stroke: #8b71d6; }
+.donut .skip { stroke: #cfcfcf; }
+.donut-label { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+.donut-label strong { font-size: 20px; }
+.donut-label span { color: var(--muted); font-size: 10.5px; margin-top: 2px; }
+.metadata-row { border-top: 1px solid var(--border); display: flex; gap: 8px 24px; padding: 12px 0; color: var(--muted); font-size: 12px; flex-wrap: wrap; }
+.metadata-row b { color: #3d3d3d; margin-right: 5px; }
+
+/* ---------- feature tabs (like the portal page tabs) ---------- */
+.feature-tabs { margin-top: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; display: flex; overflow-x: auto; }
+.ftab {
+  flex: 1 0 auto; border: 0; background: none; padding: 14px 18px; color: var(--text); font-weight: 600;
+  border-bottom: 3px solid transparent; display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap;
+}
+.ftab:hover { background: #fcfaf6; }
+.ftab[aria-selected="true"] { color: var(--green); border-bottom-color: var(--green); }
+.ftab.empty { color: #aaa; font-weight: 500; }
+
+/* ---------- toolbar ---------- */
+.result-toolbar {
+  margin-top: 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+  background: #fbf3e6; border: 1px solid #f3e4cc; border-bottom: 0; border-radius: 12px 12px 0 0; padding: 0 10px;
+}
+.tabs { display: flex; align-items: center; gap: 2px; flex-wrap: wrap; }
+.tab { border: 0; background: transparent; padding: 13px 14px; color: var(--muted); border-bottom: 3px solid transparent; }
+.tab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--green); font-weight: 800; background: var(--surface); }
+.tab span { background: #ececec; color: #444; border-radius: 10px; padding: 1px 7px; font-size: 11px; margin-left: 4px; font-weight: 700; }
+.tab span.red { color: #fff; background: var(--red); }
+.tab span.green { color: #fff; background: var(--green-2); }
+.tab span.purple { color: #fff; background: #8b71d6; }
+.tab span.gray { color: #fff; background: #ababab; }
+.toolbar-right { display: flex; gap: 8px; align-items: center; padding: 8px 0; flex-wrap: wrap; }
+.search-box {
+  height: 36px; width: 260px; background: var(--surface); border: 1px solid var(--border); border-radius: 18px;
+  display: flex; align-items: center; padding: 0 12px; color: #888;
+}
+.search-box input { border: 0; outline: 0; width: 100%; padding-left: 8px; background: none; color: var(--text); }
+.tool-btn { height: 36px; border: 1px solid var(--green); background: var(--surface); border-radius: 10px; padding: 0 12px; color: var(--green); font-weight: 600; }
+.tool-btn:hover { background: var(--green-bg); }
+
+/* ---------- results ---------- */
+.results-card { background: var(--surface); border: 1px solid var(--border); border-radius: 0 0 12px 12px; overflow: hidden; }
+.result-list-header {
+  height: 42px; padding: 0 16px; display: flex; justify-content: space-between; align-items: center;
+  color: #fff; font-size: 11.5px; font-weight: 800; letter-spacing: .6px; background: var(--green);
+}
+.group-head {
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 50px; padding: 0 16px;
+  border: 0; border-bottom: 1px solid var(--border); background: #fffaf2; text-align: left; color: var(--text);
+}
+.group-head:hover { background: #fdf2e1; }
+.group-title { flex: 1; min-width: 0; font-weight: 800; font-size: 14.5px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.group-stats { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); }
+.stat { font-weight: 700; white-space: nowrap; }
+.stat.passed { color: var(--green); } .stat.failed { color: var(--red); } .stat.known { color: var(--purple); }
+.stat.flaky { color: var(--amber); } .stat.skipped, .stat.pending { color: var(--grey); }
+.bar { display: flex; width: 110px; height: 7px; border-radius: 4px; overflow: hidden; background: var(--grey-bg); flex: none; }
+.bar i { display: block; height: 100%; }
+.bar .passed, .bar .flaky { background: var(--green-2); } .bar .failed { background: var(--red); }
+.bar .known { background: #8b71d6; } .bar .skipped, .bar .pending { background: #cfcfcf; }
+.chev { width: 14px; height: 14px; flex: none; fill: none; stroke: #777; stroke-width: 2; transition: transform .15s; }
+.open > .group-head .chev, .test-item.expanded .test-row-main .chev { transform: rotate(90deg); }
+.group-body { display: none; }
+.test-group.open > .group-body { display: block; }
+
+.test-item { border-bottom: 1px solid #f1f1f1; }
+.test-row-main {
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 0 16px 0 28px;
+  border: 0; background: none; text-align: left; color: var(--text);
+}
+.test-row-main:hover { background: #fcfcfc; }
+.status-dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 10px; }
+.status-dot.passed { background: var(--green-2); } .status-dot.failed { background: var(--red); }
+.status-dot.known { background: #8b71d6; } .status-dot.flaky { background: #e6a23c; }
+.status-dot.skipped, .status-dot.pending { background: #bdbdbd; }
+.test-main-info { min-width: 0; flex: 1; }
+.test-title { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.test-subtitle { color: #8a8a8a; font-size: 11.5px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.result-duration { width: 64px; text-align: right; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.result-status { width: 78px; text-align: right; font-size: 12px; font-weight: 700; }
+.result-status.passed { color: var(--green); } .result-status.failed { color: var(--red); }
+.result-status.known { color: var(--purple); } .result-status.flaky { color: var(--amber); }
+.result-status.skipped, .result-status.pending { color: var(--grey); }
+.test-meta-line { padding: 0 16px 10px 66px; display: flex; align-items: center; gap: 8px; color: #9a9a9a; font-size: 11px; flex-wrap: wrap; }
+.module-chip { background: #fff1dc; color: #6b4a12; padding: 2px 8px; border-radius: 8px; font-weight: 700; }
+.tag { background: #f1f1f1; color: #666; padding: 2px 7px; border-radius: 8px; }
+.tag.retry { background: #eef3ff; color: #3456b8; }
+.tag.note { background: var(--purple-bg); color: var(--purple); }
+.meta-spacer { flex: 1; }
+.link-btn { border: 0; background: none; color: var(--green); padding: 0; font-size: 11px; font-weight: 700; }
+.link-btn:hover { text-decoration: underline; }
+
+/* ---------- test detail ---------- */
+.test-detail-row { display: none; background: #fcfbf8; border-top: 1px solid #f1f1f1; padding: 14px 22px 18px 66px; }
+.test-item.expanded .test-detail-row { display: block; }
+.detail-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.detail-section { border-bottom: 1px solid #f1f1f1; }
+.detail-section:last-child { border-bottom: 0; }
+.detail-section > summary { padding: 10px 13px; font-weight: 700; font-size: 12.5px; cursor: pointer; background: #fafafa; }
+.section-content { padding: 12px; }
+.error-box { background: var(--red-bg); border: 1px solid #f6caca; border-left: 3px solid var(--red); border-radius: 6px; padding: 10px; }
+pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12px/1.5 Consolas, "Cascadia Mono", monospace; }
+.error-message { color: #8f1219; }
+.snippet { margin-top: 10px; background: #1e1e1e; color: #e6e6e6; padding: 10px 12px; border-radius: 6px; overflow-x: auto; }
+.stack-details { margin-top: 8px; color: #666; }
+.stack-details pre { background: #f6f6f6; padding: 8px; border-radius: 4px; max-height: 260px; overflow: auto; margin-top: 6px; }
+.console { background: #141c2b; color: #d5dbea; border-radius: 6px; padding: 8px 10px; max-height: 300px; overflow: auto; font: 11.5px/1.55 Consolas, "Cascadia Mono", monospace; }
+.console div { white-space: pre-wrap; word-break: break-word; }
+.steps { list-style: none; margin: 0; padding: 0; font-size: 12.5px; }
+.steps li { display: flex; gap: 8px; padding: 3px 0; color: #444; }
+.steps li.bad { color: var(--red); font-weight: 700; }
+.steps .s-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.steps .s-time { color: #999; font-size: 11px; }
+.shot { max-width: min(100%, 560px); border: 1px solid var(--border); border-radius: 6px; cursor: zoom-in; display: block; }
+.empty-results { padding: 36px; color: #8a8a8a; text-align: center; }
+
+.modal { display: none; position: fixed; z-index: 1000; inset: 0; background: rgba(0,0,0,.78); align-items: center; justify-content: center; padding: 24px; }
+.modal.active { display: flex; }
+.modal img { max-width: 100%; max-height: 100%; border-radius: 6px; }
+.modal-close { position: absolute; top: 14px; right: 24px; color: #fff; font-size: 34px; background: none; border: 0; }
+
+@media (max-width: 900px) {
+  :root { --side-w: 240px; }
+  .main-content { padding: 16px; }
+  .search-box { width: 180px; }
+  .header-date { display: none; }
+}
+@media (max-width: 700px) {
+  .content-shell { display: block; }
+  .sidebar { position: static; width: 100%; height: auto; max-height: 50vh; }
+  .brand-cell { width: auto; flex: 0 0 auto; padding-left: 14px; }
+  .brand-name { display: none; } .brand-divider { display: none; }
+  .brand-title { font-size: 16px; }
+  .summary-main { display: block; }
+  .donut-wrap { margin: 18px auto 0; }
+  .test-row-main { padding-left: 14px; }
+  .test-meta-line, .test-detail-row { padding-left: 16px; }
+  .result-duration, .bar { display: none; }
+  .header-actions { padding-right: 12px; }
+}
+</style>
+</head>
+<body>
+<div class="app-shell" id="appShell">
+  <header class="top-header">
+    <div class="brand-cell">
+      <span class="logo-badge">QA</span><span class="brand-divider"></span><span class="brand-name">Portal</span>
+    </div>
+    <button type="button" class="menu-toggle" id="menuToggle" aria-label="Toggle menu">&#9776;</button>
+    <div class="brand-center"><span class="brand-title" id="brandTitle"></span></div>
+    <div class="header-actions" id="headerActions"></div>
+  </header>
+  <div class="content-shell">
+    <aside class="sidebar" id="sidebar"><nav id="nav" aria-label="Portal menu"></nav></aside>
+    <main class="main-content" id="main"></main>
+  </div>
+</div>
+<div class="modal" id="shotModal" role="dialog" aria-label="Screenshot">
+  <button type="button" class="modal-close" aria-label="Close">&times;</button>
+  <img id="shotImg" alt="">
+</div>
+<script type="application/json" id="report-data">{"title":"Automation Report","subtitle":"Fleet Management Portal","environment":"SIT","author":"QA Team","browsers":["chromium"],"platform":"Windows","workers":1,"startTime":"2026-10-28T16:14:23.476Z","elapsed":320495,"finished":true,"menu":[{"name":"Dashboard","icon":"dashboard"},{"name":"Live Tracking","icon":"tracking","subs":[{"name":"Route replay"}]},{"name":"Analytics","icon":"analytics","subs":[{"name":"Fleet"},{"name":"Swap"},{"name":"Battery"}]},{"name":"Sessions","icon":"sessions"},{"name":"Alerts","icon":"alerts"},{"name":"Geofence","icon":"geofence"},{"name":"Workflow Management","icon":"workflow","subs":[{"name":"Tickets"},{"name":"Assigned Tickets"},{"name":"Checklists"}]},{"name":"Asset Management","icon":"asset","subs":[{"name":"Asset Onboarding","features":["Sites","Swap Stations","Vehicle","Battery","VTS","Key Fob","Asset Link"]},{"name":"Asset Linking","features":["Link Assets","View Mapping"]}]},{"name":"User Management","icon":"user","subs":[{"name":"Driver"},{"name":"Technician"}]},{"name":"Role Management","icon":"role","subs":[{"name":"Roles"},{"name":"Users"}]},{"name":"Partner Management","icon":"partner"},{"name":"Reports","icon":"reports"},{"name":"Audit Logs","icon":"audit"},{"name":"Settings","icon":"settings"}],"icons":{"all":"\u003ccircle cx=\"12\" cy=\"12\" r=\"8\"/>\u003ccircle cx=\"12\" cy=\"12\" r=\"3.5\"/>","dashboard":"\u003crect x=\"4\" y=\"4\" width=\"7\" height=\"7\" rx=\"1.5\"/>\u003crect x=\"13\" y=\"4\" width=\"7\" height=\"7\" rx=\"1.5\"/>\u003crect x=\"4\" y=\"13\" width=\"7\" height=\"7\" rx=\"1.5\"/>\u003crect x=\"13\" y=\"13\" width=\"7\" height=\"7\" rx=\"1.5\"/>","tracking":"\u003cpath d=\"M4 19V6l5-2 6 2 5-2v13l-5 2-6-2z\"/>\u003cpath d=\"M9 4v13M15 6v13\"/>","analytics":"\u003cpath d=\"M4 20h16M7 16v-5M12 16V7M17 16v-8\"/>","sessions":"\u003cpath d=\"M13 3L5 14h6l-1 7 8-11h-6z\"/>","alerts":"\u003cpath d=\"M12 4l9 16H3z\"/>\u003cpath d=\"M12 10v4M12 17v.5\"/>","geofence":"\u003ccircle cx=\"12\" cy=\"12\" r=\"7\"/>\u003ccircle cx=\"12\" cy=\"12\" r=\"2\"/>\u003cpath d=\"M12 2v3M12 19v3M2 12h3M19 12h3\"/>","workflow":"\u003crect x=\"4\" y=\"5\" width=\"16\" height=\"14\" rx=\"2\"/>\u003cpath d=\"M8 10h8M8 14h5\"/>","asset":"\u003cpath d=\"M5 17h14M6 17l1.5-5h9L18 17M8 12l1-3h6l1 3\"/>\u003ccircle cx=\"8\" cy=\"17.5\" r=\"1.5\"/>\u003ccircle cx=\"16\" cy=\"17.5\" r=\"1.5\"/>","user":"\u003ccircle cx=\"12\" cy=\"8\" r=\"3.5\"/>\u003cpath d=\"M5 20c.8-3.8 3.6-6 7-6s6.2 2.2 7 6\"/>","role":"\u003ccircle cx=\"9\" cy=\"8\" r=\"3\"/>\u003cpath d=\"M3.5 19c.6-3 2.8-5 5.5-5s4.9 2 5.5 5\"/>\u003ccircle cx=\"17\" cy=\"9\" r=\"2.3\"/>\u003cpath d=\"M15.5 14.2c2.3.2 4 1.9 4.5 4.8\"/>","partner":"\u003crect x=\"5\" y=\"4\" width=\"14\" height=\"16\" rx=\"2\"/>\u003ccircle cx=\"12\" cy=\"10\" r=\"2.5\"/>\u003cpath d=\"M8.5 16.5c.6-1.8 1.9-2.8 3.5-2.8s2.9 1 3.5 2.8\"/>","reports":"\u003cpath d=\"M7 3h7l5 5v13H7z\"/>\u003cpath d=\"M14 3v5h5M10 13h6M10 17h6\"/>","audit":"\u003cpath d=\"M7 3h10v18H7z\"/>\u003ccircle cx=\"12\" cy=\"11\" r=\"2.5\"/>\u003cpath d=\"M14 13l2 2\"/>","settings":"\u003ccircle cx=\"12\" cy=\"12\" r=\"3\"/>\u003cpath d=\"M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1\"/>","unmapped":"\u003cpath d=\"M4 6.5A1.5 1.5 0 0 1 5.5 5H10l2 2h6.5A1.5 1.5 0 0 1 20 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5z\"/>"},"tests":[{"id":"5d80cd4e216274669d17-88239512a809bf16b87f","order":48,"menu":"Workflow Management/Tickets","feature":"","title":"Create Ticket","describe":"Workflow Management - Tickets","file":"WorkflowManagement/ticket.spec.ts","line":43,"status":"passed","duration":9582,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Click","duration":51,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":61,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":5,"depth":0,"error":false},{"title":"Select option","duration":766,"depth":0,"error":false},{"title":"Select option","duration":12,"depth":0,"error":false},{"title":"Select option","duration":8,"depth":0,"error":false},{"title":"Fill \"Batdraining0001\"","duration":8,"depth":0,"error":false},{"title":"Fill \"TicketWDKTV battery draining fast\"","duration":13,"depth":0,"error":false},{"title":"Click","duration":39,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Expect \"toPass\"","duration":1778,"depth":0,"error":false},{"title":"Clear","duration":10,"depth":1,"error":false},{"title":"Type \"sample location\"","duration":875,"depth":1,"error":false},{"title":"Expect \"toBeVisible\"","duration":888,"depth":1,"error":false},{"title":"Click","duration":33,"depth":0,"error":false},{"title":"Expect \"toBeEnabled\"","duration":1343,"depth":0,"error":false},{"title":"Click","duration":20,"depth":0,"error":false},{"title":"Expect \"not toHaveValue\"","duration":3,"depth":0,"error":false},{"title":"Wait for event \"response\"","duration":675,"depth":0,"error":false},{"title":"Click","duration":305,"depth":0,"error":false},{"title":"Create ticket failed: {\"success\":true,\"externalTicketId\":\"6ae22069e3db268dba75e52a\",\"message\":\"Ticket created successfully\",\"ourTicketId\":\"T-1AAB204329\",\"checklistResult\":null}","duration":0,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":3,"depth":0,"error":false},{"title":"Click","duration":42,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":10,"depth":0,"error":false},{"title":"Expect \"toPass\"","duration":166,"depth":0,"error":false},{"title":"Click","duration":35,"depth":1,"error":false},{"title":"Fill \"T-1AAB204329\"","duration":6,"depth":1,"error":false},{"title":"Press \"Enter\"","duration":11,"depth":1,"error":false},{"title":"Expect \"toBeVisible\"","duration":111,"depth":1,"error":false}],"logs":["==========================================","CREATE TICKET","==========================================","✅ Tickets page opened","✅ Ticket created: T-1AAB204329","✅ Tickets page opened","✅ Ticket T-1AAB204329 found in Open","✅ Create Ticket completed","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"5d80cd4e216274669d17-29cb1cfe4feceeded887","order":49,"menu":"Workflow Management/Tickets","feature":"","title":"Assign Ticket","describe":"Workflow Management - Tickets","file":"WorkflowManagement/ticket.spec.ts","line":67,"status":"passed","duration":7978,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Click","duration":52,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Expect \"toPass\"","duration":108,"depth":0,"error":false},{"title":"Click","duration":46,"depth":1,"error":false},{"title":"Fill \"T-1AAB204329\"","duration":10,"depth":1,"error":false},{"title":"Press \"Enter\"","duration":7,"depth":1,"error":false},{"title":"Expect \"toBeVisible\"","duration":42,"depth":1,"error":false},{"title":"Click","duration":44,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":106,"depth":0,"error":false},{"title":"Click","duration":19,"depth":0,"error":false},{"title":"Fill \"fransadmins\"","duration":7,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":15,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":279,"depth":0,"error":false},{"title":"Check","duration":36,"depth":0,"error":false},{"title":"Click","duration":49,"depth":0,"error":false},{"title":"Click","duration":501,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":889,"depth":0,"error":false},{"title":"Click","duration":36,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Expect \"toPass\"","duration":5290,"depth":0,"error":false},{"title":"Click","duration":42,"depth":1,"error":false},{"title":"Fill \"T-1AAB204329\"","duration":6,"depth":1,"error":false},{"title":"Press \"Enter\"","duration":13,"depth":1,"error":false},{"title":"Expect \"toBeVisible\"","duration":5019,"depth":1,"error":true},{"title":"Click","duration":43,"depth":1,"error":false},{"title":"Fill \"T-1AAB204329\"","duration":8,"depth":1,"error":false},{"title":"Press \"Enter\"","duration":7,"depth":1,"error":false},{"title":"Expect \"toBeVisible\"","duration":38,"depth":1,"error":false}],"logs":["==========================================","ASSIGN TICKET","==========================================","✅ Tickets page opened","✅ Ticket T-1AAB204329 found in Open","✅ Ticket T-1AAB204329 assigned to fransadmins","✅ Tickets page opened","✅ Ticket T-1AAB204329 found in In Progress","✅ Assign Ticket completed","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"5d80cd4e216274669d17-61ce2cbd05ee942434eb","order":50,"menu":"Workflow Management/Tickets","feature":"","title":"Close Ticket","describe":"Workflow Management - Tickets","file":"WorkflowManagement/ticket.spec.ts","line":92,"status":"passed","duration":6219,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Click","duration":33,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":5,"depth":0,"error":false},{"title":"Expect \"toPass\"","duration":97,"depth":0,"error":false},{"title":"Click","duration":40,"depth":1,"error":false},{"title":"Fill \"T-1AAB204329\"","duration":10,"depth":1,"error":false},{"title":"Press \"Enter\"","duration":7,"depth":1,"error":false},{"title":"Expect \"toBeVisible\"","duration":38,"depth":1,"error":false},{"title":"Click","duration":48,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":52,"depth":0,"error":false},{"title":"Click","duration":50,"depth":0,"error":false},{"title":"Click","duration":613,"depth":0,"error":false},{"title":"Fill \"TicketWDKTV battery draining fast resolved\"","duration":18,"depth":0,"error":false},{"title":"Click","duration":303,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":881,"depth":0,"error":false},{"title":"Click","duration":44,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Expect \"toPass\"","duration":111,"depth":0,"error":false},{"title":"Click","duration":40,"depth":1,"error":false},{"title":"Fill \"T-1AAB204329\"","duration":11,"depth":1,"error":false},{"title":"Press \"Enter\"","duration":8,"depth":1,"error":false},{"title":"Expect \"toBeVisible\"","duration":46,"depth":1,"error":false}],"logs":["==========================================","CLOSE TICKET","==========================================","✅ Tickets page opened","✅ Ticket T-1AAB204329 found in In Progress","✅ Ticket closed: T-1AAB204329","✅ Tickets page opened","✅ Ticket T-1AAB204329 found in Closed","✅ Close Ticket completed","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"5d80cd4e216274669d17-122231d47a90a1862eec","order":51,"menu":"Workflow Management/Tickets","feature":"","title":"Bulk Assign Ticket","describe":"Workflow Management - Tickets","file":"WorkflowManagement/ticket.spec.ts","line":117,"status":"passed","duration":26574,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Click","duration":41,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Click","duration":48,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":6,"depth":0,"error":false},{"title":"Select option","duration":770,"depth":0,"error":false},{"title":"Select option","duration":8,"depth":0,"error":false},{"title":"Select option","duration":5,"depth":0,"error":false},{"title":"Fill \"Batdraining0001\"","duration":8,"depth":0,"error":false},{"title":"Fill \"TicketWDKTV battery draining fast\"","duration":10,"depth":0,"error":false},{"title":"Click","duration":44,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":2,"depth":0,"error":false},{"title":"Expect \"toPass\"","duration":1145,"depth":0,"error":false},{"title":"Clear","duration":9,"depth":1,"error":false},{"title":"Type \"sample location\"","duration":875,"depth":1,"error":false},{"title":"Expect \"toBeVisible\"","duration":258,"depth":1,"error":false},{"title":"Click","duration":57,"depth":0,"error":false},{"title":"Expect \"toBeEnabled\"","duration":1395,"depth":0,"error":false},{"title":"Click","duration":36,"depth":0,"error":false},{"title":"Expect \"not toHaveValue\"","duration":4,"depth":0,"error":false},{"title":"Wait for event \"response\"","duration":649,"depth":0,"error":false},{"title":"Click","duration":283,"depth":0,"error":false},{"title":"Create ticket failed: {\"success\":true,\"externalTicketId\":\"6ae22081e3db268dba75e558\",\"message\":\"Ticket created successfully\",\"ourTicketId\":\"T-44AC404352\",\"checklistResult\":null}","duration":0,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":3,"depth":0,"error":false},{"title":"Click","duration":45,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":5,"depth":0,"error":false},{"title":"Click","duration":49,"depth":0,"error":false},{"title":"Click","duration":38,"depth":0,"error":false},{"title":"Fill \"T-44AC404352\"","duration":8,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":30,"depth":0,"error":false},{"title":"Check","duration":50,"depth":0,"error":false},{"title":"Click","duration":46,"depth":0,"error":false},{"title":"Expect \"toBeHidden\"","duration":2,"depth":0,"error":false},{"title":"Click","duration":63,"depth":0,"error":false},{"title":"Fill \"fransadmins\"","duration":16,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":9,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Check","duration":36,"depth":0,"error":false},{"title":"Click","duration":39,"depth":0,"error":false},{"title":"Click","duration":480,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":861,"depth":0,"error":false},{"title":"Click","duration":14607,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":6,"depth":0,"error":false},{"title":"Expect \"toPass\"","duration":5378,"depth":0,"error":false},{"title":"Click","duration":53,"depth":1,"error":false},{"title":"Fill \"T-44AC404352\"","duration":13,"depth":1,"error":false},{"title":"Press \"Enter\"","duration":17,"depth":1,"error":false},{"title":"Expect \"toBeVisible\"","duration":5016,"depth":1,"error":true},{"title":"Click","duration":40,"depth":1,"error":false},{"title":"Fill \"T-44AC404352\"","duration":10,"depth":1,"error":false},{"title":"Press \"Enter\"","duration":7,"depth":1,"error":false},{"title":"Expect \"toBeVisible\"","duration":106,"depth":1,"error":false}],"logs":["==========================================","BULK ASSIGN TICKET","==========================================","✅ Tickets page opened","✅ Ticket created: T-44AC404352","✅ Tickets page opened","✅ T-44AC404352 assigned to fransadmins","✅ Tickets page opened","✅ Ticket T-44AC404352 found in In Progress","✅ Bulk Assign Ticket completed","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"5d80cd4e216274669d17-f6108c24c9228fe4b793","order":52,"menu":"Workflow Management/Tickets","feature":"","title":"Close Bulk Assigned Ticket","describe":"Workflow Management - Tickets","file":"WorkflowManagement/ticket.spec.ts","line":146,"status":"passed","duration":7983,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Click","duration":60,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":6,"depth":0,"error":false},{"title":"Expect \"toPass\"","duration":96,"depth":0,"error":false},{"title":"Click","duration":32,"depth":1,"error":false},{"title":"Fill \"T-44AC404352\"","duration":9,"depth":1,"error":false},{"title":"Press \"Enter\"","duration":8,"depth":1,"error":false},{"title":"Expect \"toBeVisible\"","duration":42,"depth":1,"error":false},{"title":"Click","duration":76,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":105,"depth":0,"error":false},{"title":"Click","duration":40,"depth":0,"error":false},{"title":"Click","duration":501,"depth":0,"error":false},{"title":"Fill \"TicketWDKTV battery draining fast resolved\"","duration":17,"depth":0,"error":false},{"title":"Click","duration":303,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":864,"depth":0,"error":false},{"title":"Click","duration":19,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Expect \"toPass\"","duration":5366,"depth":0,"error":false},{"title":"Click","duration":47,"depth":1,"error":false},{"title":"Fill \"T-44AC404352\"","duration":10,"depth":1,"error":false},{"title":"Press \"Enter\"","duration":12,"depth":1,"error":false},{"title":"Expect \"toBeVisible\"","duration":5012,"depth":1,"error":true},{"title":"Click","duration":38,"depth":1,"error":false},{"title":"Fill \"T-44AC404352\"","duration":11,"depth":1,"error":false},{"title":"Press \"Enter\"","duration":6,"depth":1,"error":false},{"title":"Expect \"toBeVisible\"","duration":114,"depth":1,"error":false}],"logs":["==========================================","CLOSE BULK ASSIGNED TICKET","==========================================","✅ Tickets page opened","✅ Ticket T-44AC404352 found in In Progress","✅ Ticket closed: T-44AC404352","✅ Tickets page opened","✅ Ticket T-44AC404352 found in Closed","✅ Close Bulk Assigned Ticket completed","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"f52d363c7e56e311f403-b4de6b9e718c6a7cb13b","order":44,"menu":"Workflow Management/Checklists","feature":"","title":"Create Checklist","describe":"Workflow Management - Checklists","file":"WorkflowManagement/checklist.spec.ts","line":40,"status":"passed","duration":7039,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Click","duration":35,"depth":0,"error":false},{"title":"Click","duration":410,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":41,"depth":0,"error":false},{"title":"Click","duration":59,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":7,"depth":0,"error":false},{"title":"Fill \"ChecklistQVKOI\"","duration":9,"depth":0,"error":false},{"title":"Select option","duration":773,"depth":0,"error":false},{"title":"Select option","duration":11,"depth":0,"error":false},{"title":"Select option","duration":6,"depth":0,"error":false},{"title":"Click","duration":36,"depth":0,"error":false},{"title":"Expect \"toBeAttached\"","duration":16,"depth":0,"error":false},{"title":"Click","duration":49,"depth":0,"error":false},{"title":"Expect \"toBeChecked\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":39,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":2,"depth":0,"error":false},{"title":"Click","duration":51,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Fill \"ParameterQVKOI\"","duration":12,"depth":0,"error":false},{"title":"Select option","duration":12,"depth":0,"error":false},{"title":"Fill \"10\"","duration":13,"depth":0,"error":false},{"title":"Check","duration":52,"depth":0,"error":false},{"title":"Fill \"status\"","duration":10,"depth":0,"error":false},{"title":"Click","duration":35,"depth":0,"error":false},{"title":"Click","duration":33,"depth":0,"error":false},{"title":"Click","duration":38,"depth":0,"error":false},{"title":"Click","duration":48,"depth":0,"error":false},{"title":"Select option","duration":8,"depth":0,"error":false},{"title":"Click","duration":38,"depth":0,"error":false},{"title":"Click","duration":32,"depth":0,"error":false},{"title":"Click","duration":34,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":105,"depth":0,"error":false},{"title":"Expect \"toHaveCount\"","duration":4458,"depth":0,"error":false}],"logs":["==========================================","CREATE CHECKLIST","==========================================","✅ Checklists page opened","✅ Asset model selected: BATTERY - laptop","✅ Checklist created: ChecklistQVKOI","✅ Create Checklist completed","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"f52d363c7e56e311f403-c1accecfe8a3221dcf45","order":45,"menu":"Workflow Management/Checklists","feature":"","title":"View Checklist","describe":"Workflow Management - Checklists","file":"WorkflowManagement/checklist.spec.ts","line":59,"status":"passed","duration":637,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Click","duration":28,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":41,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":41,"depth":0,"error":false}],"logs":["==========================================","VIEW CHECKLIST","==========================================","✅ Checklists page opened","✅ Checklist details verified: ChecklistQVKOI","✅ View Checklist completed","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"f52d363c7e56e311f403-d3bdbe6c1eee9f9b1989","order":46,"menu":"Workflow Management/Checklists","feature":"","title":"Edit Checklist","describe":"Workflow Management - Checklists","file":"WorkflowManagement/checklist.spec.ts","line":78,"status":"passed","duration":7218,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Click","duration":28,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Click","duration":53,"depth":0,"error":false},{"title":"Expect \"toHaveValue\"","duration":842,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Expect \"toPass\"","duration":1024,"depth":0,"error":false},{"title":"Fill \"ChecklistQVKOIUpdated\"","duration":10,"depth":1,"error":false},{"title":"Wait for timeout","duration":1002,"depth":1,"error":false},{"title":"Expect \"toHaveValue\"","duration":8,"depth":1,"error":false},{"title":"Click","duration":41,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":37,"depth":0,"error":false},{"title":"Click","duration":30,"depth":0,"error":false},{"title":"Click","duration":33,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":116,"depth":0,"error":false},{"title":"Expect \"toHaveCount\"","duration":4451,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":14,"depth":0,"error":false}],"logs":["==========================================","EDIT CHECKLIST","==========================================","✅ Checklists page opened","✅ Checklist updated: ChecklistQVKOIUpdated","✅ Edit Checklist completed","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"f52d363c7e56e311f403-9943d2ae34e80141deb5","order":47,"menu":"Workflow Management/Checklists","feature":"","title":"Delete Checklist","describe":"Workflow Management - Checklists","file":"WorkflowManagement/checklist.spec.ts","line":98,"status":"passed","duration":5188,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Click","duration":45,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Click","duration":37,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":109,"depth":0,"error":false},{"title":"Expect \"toHaveCount\"","duration":5,"depth":0,"error":false},{"title":"Expect \"toHaveCount\"","duration":4444,"depth":0,"error":false}],"logs":["==========================================","DELETE CHECKLIST","==========================================","✅ Checklists page opened","✅ Checklist deleted: ChecklistQVKOIUpdated","✅ Delete Checklist completed","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"f872730bde74a46fc7f1-53ac42131dbbca207df2","order":15,"menu":"Asset Management/Asset Onboarding","feature":"Sites","title":"Create Site","describe":"","file":"Asset-Management/site.spec.ts","line":4,"status":"passed","duration":9787,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":6,"depth":0,"error":false},{"title":"Click","duration":35,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Click","duration":61,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":5,"depth":0,"error":false},{"title":"Click","duration":203,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":6,"depth":0,"error":false},{"title":"Select option","duration":761,"depth":0,"error":false},{"title":"Select option","duration":781,"depth":0,"error":false},{"title":"Fill \"SWAP10282026214542106\"","duration":12,"depth":0,"error":false},{"title":"Click","duration":375,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":236,"depth":0,"error":false},{"title":"Click","duration":453,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":106,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":7,"depth":0,"error":false},{"title":"Check","duration":1007,"depth":0,"error":false},{"title":"Click","duration":54,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Check","duration":48,"depth":0,"error":false},{"title":"Click","duration":51,"depth":0,"error":false},{"title":"Click","duration":59,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Click","duration":214,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":5,"depth":0,"error":false},{"title":"Fill \"SITE10282026214542106\"","duration":12,"depth":0,"error":false},{"title":"Select option","duration":17,"depth":0,"error":false},{"title":"Evaluate","duration":22,"depth":0,"error":false},{"title":"Select option","duration":8,"depth":0,"error":false},{"title":"Click","duration":54,"depth":0,"error":false},{"title":"Type \"sample location\"","duration":1572,"depth":0,"error":false},{"title":"Click","duration":151,"depth":0,"error":false},{"title":"Click","duration":148,"depth":0,"error":false},{"title":"Select option","duration":13,"depth":0,"error":false},{"title":"Select option","duration":26,"depth":0,"error":false},{"title":"Click","duration":98,"depth":0,"error":false},{"title":"Click","duration":54,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":7,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":957,"depth":0,"error":false},{"title":"Click","duration":41,"depth":0,"error":false},{"title":"Click","duration":182,"depth":0,"error":false},{"title":"Click","duration":54,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":241,"depth":0,"error":false},{"title":"Click","duration":415,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":118,"depth":0,"error":false},{"title":"Click","duration":490,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":46,"depth":0,"error":false}],"logs":["✅ Swap Station Onboard page is ready","✅ Swap Station linked to franchise: companygorvy","✅ Site has been onboarded successfully","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"0891acd5871e75b69751-2d07f7c561dc9eda25ea","order":16,"menu":"Asset Management/Asset Onboarding","feature":"Swap Stations","title":"Create Swap Station","describe":"Swap Station Tests","file":"Asset-Management/swap-station.spec.ts","line":8,"status":"passed","duration":3578,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":5,"depth":0,"error":false},{"title":"Click","duration":36,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":5,"depth":0,"error":false},{"title":"Click","duration":58,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":6,"depth":0,"error":false},{"title":"Click","duration":150,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Select option","duration":771,"depth":0,"error":false},{"title":"Select option","duration":782,"depth":0,"error":false},{"title":"Fill \"SWAP10282026214551917\"","duration":12,"depth":0,"error":false},{"title":"Click","duration":436,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":228,"depth":0,"error":false},{"title":"Click","duration":450,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":95,"depth":0,"error":false}],"logs":["Creating Swap Station: SWAP10282026214551917","✅ Swap Station Onboard page is ready","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"0891acd5871e75b69751-2c912956898fab5caa3d","order":17,"menu":"Asset Management/Asset Onboarding","feature":"Swap Stations","title":"Link Swap Station","describe":"Swap Station Tests","file":"Asset-Management/swap-station.spec.ts","line":22,"status":"passed","duration":4678,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":7,"depth":0,"error":false},{"title":"Check","duration":31,"depth":0,"error":false},{"title":"Click","duration":53,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Check","duration":33,"depth":0,"error":false},{"title":"Click","duration":33,"depth":0,"error":false}],"logs":["Linking Swap Station: SWAP10282026214551917","✅ Swap Station linked to franchise: companygorvy","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"0891acd5871e75b69751-3a66937030a6917fb937","order":18,"menu":"Asset Management/Asset Onboarding","feature":"Swap Stations","title":"Delink Swap Station","describe":"Swap Station Tests","file":"Asset-Management/swap-station.spec.ts","line":35,"status":"passed","duration":5088,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":7,"depth":0,"error":false},{"title":"Check","duration":30,"depth":0,"error":false},{"title":"Click","duration":50,"depth":0,"error":false},{"title":"Click","duration":500,"depth":0,"error":false}],"logs":["Delinking Swap Station: SWAP10282026214551917","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"0891acd5871e75b69751-da3d004586ba5b254aa1","order":19,"menu":"Asset Management/Asset Onboarding","feature":"Swap Stations","title":"View Swap Station","describe":"Swap Station Tests","file":"Asset-Management/swap-station.spec.ts","line":48,"status":"passed","duration":1908,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":61,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":49,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":5,"depth":0,"error":false},{"title":"Fill \"SWAP10282026214551917\"","duration":8,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":14,"depth":0,"error":false},{"title":"Expect \"toHaveCount\"","duration":3,"depth":0,"error":false},{"title":"Click","duration":505,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":231,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":5,"depth":0,"error":false},{"title":"Click","duration":268,"depth":0,"error":false},{"title":"Expect \"toBeHidden\"","duration":229,"depth":0,"error":false}],"logs":["Viewing Swap Station: SWAP10282026214551917","✅ Swap Station Onboard page is ready","✅ Swap Station details verified: SWAP10282026214551917","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"0891acd5871e75b69751-5b0e3ade2ec79b9bd753","order":20,"menu":"Asset Management/Asset Onboarding","feature":"Swap Stations","title":"Delete Swap Station","describe":"Swap Station Tests","file":"Asset-Management/swap-station.spec.ts","line":59,"status":"passed","duration":5381,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":6,"depth":0,"error":false},{"title":"Click","duration":33,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":5,"depth":0,"error":false},{"title":"Click","duration":38,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":5,"depth":0,"error":false},{"title":"Expect \"toHaveCount\"","duration":3,"depth":0,"error":false},{"title":"Click","duration":36,"depth":0,"error":false},{"title":"Click","duration":582,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":140,"depth":0,"error":false},{"title":"Expect \"toHaveCount\"","duration":4,"depth":0,"error":false}],"logs":["Deleting Swap Station: SWAP10282026214551917","✅ Swap Station Onboard page is ready","✅ Swap Station deleted: SWAP10282026214551917","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"39932cdfbe3ee43c5c45-8b02c7ec324b669ff96b","order":21,"menu":"Asset Management/Asset Onboarding","feature":"Vehicle","title":"Create Vehicle","describe":"Vehicle Onboarding","file":"Asset-Management/vehicle.spec.ts","line":12,"status":"passed","duration":18651,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":34,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":60,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":6,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Fill \"TN10BF0001\"","duration":9,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":12,"depth":0,"error":false},{"title":"Wait for timeout","duration":517,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":6,"depth":0,"error":false},{"title":"Query count","duration":2,"depth":0,"error":false},{"title":"Fill \"TN10BF0002\"","duration":12,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":11,"depth":0,"error":false},{"title":"Wait for timeout","duration":511,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":19,"depth":0,"error":false},{"title":"Query count","duration":6,"depth":0,"error":false},{"title":"Fill \"TN10BF0003\"","duration":15,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":14,"depth":0,"error":false},{"title":"Wait for timeout","duration":504,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":19,"depth":0,"error":false},{"title":"Query count","duration":2,"depth":0,"error":false},{"title":"Fill \"TN10BF0004\"","duration":14,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":7,"depth":0,"error":false},{"title":"Wait for timeout","duration":516,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":16,"depth":0,"error":false},{"title":"Query count","duration":4,"depth":0,"error":false},{"title":"Fill \"TN10BF0005\"","duration":9,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":8,"depth":0,"error":false},{"title":"Wait for timeout","duration":508,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":12,"depth":0,"error":false},{"title":"Query count","duration":3,"depth":0,"error":false},{"title":"Fill \"TN10BF0006\"","duration":7,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":8,"depth":0,"error":false},{"title":"Wait for timeout","duration":513,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":16,"depth":0,"error":false},{"title":"Query count","duration":5,"depth":0,"error":false},{"title":"Fill \"TN10BF0007\"","duration":12,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":5,"depth":0,"error":false},{"title":"Wait for timeout","duration":502,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":5,"depth":0,"error":false},{"title":"Query count","duration":3,"depth":0,"error":false},{"title":"Fill \"TN10BF0008\"","duration":8,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":8,"depth":0,"error":false},{"title":"Wait for timeout","duration":504,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":8,"depth":0,"error":false},{"title":"Query count","duration":4,"depth":0,"error":false},{"title":"Fill \"TN10BF0009\"","duration":7,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":5,"depth":0,"error":false},{"title":"Wait for timeout","duration":504,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":15,"depth":0,"error":false},{"title":"Query count","duration":5,"depth":0,"error":false},{"title":"Fill \"TN10BF0010\"","duration":16,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":5,"depth":0,"error":false},{"title":"Wait for timeout","duration":516,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":12,"depth":0,"error":false},{"title":"Query count","duration":3,"depth":0,"error":false},{"title":"Fill \"TN10BF0011\"","duration":7,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":4,"depth":0,"error":false},{"title":"Wait for timeout","duration":503,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":12,"depth":0,"error":false},{"title":"Query count","duration":3,"depth":0,"error":false},{"title":"Fill \"TN10BF0012\"","duration":15,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":6,"depth":0,"error":false},{"title":"Wait for timeout","duration":507,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":17,"depth":0,"error":false},{"title":"Query count","duration":4,"depth":0,"error":false},{"title":"Fill \"TN10BF0013\"","duration":6,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":7,"depth":0,"error":false},{"title":"Wait for timeout","duration":507,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":16,"depth":0,"error":false},{"title":"Query count","duration":4,"depth":0,"error":false},{"title":"Fill \"TN10BF0014\"","duration":11,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":6,"depth":0,"error":false},{"title":"Wait for timeout","duration":507,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":18,"depth":0,"error":false},{"title":"Query count","duration":4,"depth":0,"error":false},{"title":"Fill \"TN10BF0015\"","duration":27,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":18,"depth":0,"error":false},{"title":"Wait for timeout","duration":502,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":10,"depth":0,"error":false},{"title":"Query count","duration":3,"depth":0,"error":false},{"title":"Fill \"TN10BF0016\"","duration":6,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":8,"depth":0,"error":false},{"title":"Wait for timeout","duration":507,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Query count","duration":1,"depth":0,"error":false},{"title":"Fill \"TN10BF0017\"","duration":10,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":10,"depth":0,"error":false},{"title":"Wait for timeout","duration":503,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":5,"depth":0,"error":false},{"title":"Query count","duration":3,"depth":0,"error":false},{"title":"Fill \"TN10BF0018\"","duration":14,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":5,"depth":0,"error":false},{"title":"Wait for timeout","duration":503,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":15,"depth":0,"error":false},{"title":"Query count","duration":8,"depth":0,"error":false},{"title":"Fill \"TN10BF0019\"","duration":28,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":7,"depth":0,"error":false},{"title":"Wait for timeout","duration":511,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":17,"depth":0,"error":false},{"title":"Query count","duration":3,"depth":0,"error":false},{"title":"Fill \"TN10BF0020\"","duration":8,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":7,"depth":0,"error":false},{"title":"Wait for timeout","duration":506,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":12,"depth":0,"error":false},{"title":"Query count","duration":5,"depth":0,"error":false},{"title":"Fill \"TN10BF0021\"","duration":9,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":9,"depth":0,"error":false},{"title":"Wait for timeout","duration":508,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":5,"depth":0,"error":false},{"title":"Query count","duration":3,"depth":0,"error":false},{"title":"Fill \"TN10BF0022\"","duration":11,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":8,"depth":0,"error":false},{"title":"Wait for timeout","duration":504,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":12,"depth":0,"error":false},{"title":"Query count","duration":7,"depth":0,"error":false},{"title":"Fill \"TN10BF0023\"","duration":19,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":10,"depth":0,"error":false},{"title":"Wait for timeout","duration":507,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":10,"depth":0,"error":false}],"logs":["✅ Vehicle page opened","✅ Available vehicle number: TN10BF0025","🚗 Using vehicle: TN10BF0025","✅ Vehicle created: TN10BF0025","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"39932cdfbe3ee43c5c45-24e9d6abf35baf14250a","order":22,"menu":"Asset Management/Asset Onboarding","feature":"Vehicle","title":"Edit Vehicle","describe":"Vehicle Onboarding","file":"Asset-Management/vehicle.spec.ts","line":31,"status":"passed","duration":2229,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":35,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":5,"depth":0,"error":false},{"title":"Click","duration":30,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":2,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":9,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":2,"depth":0,"error":false},{"title":"Click","duration":48,"depth":0,"error":false},{"title":"Expect \"toHaveValue\"","duration":37,"depth":0,"error":false},{"title":"Expect \"toPass\"","duration":13,"depth":0,"error":false},{"title":"Select option","duration":8,"depth":1,"error":false},{"title":"Expect \"toBeEnabled\"","duration":3,"depth":1,"error":false},{"title":"Click","duration":963,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":249,"depth":0,"error":false},{"title":"Click","duration":298,"depth":0,"error":false}],"logs":["✅ Vehicle page opened","✏️ Editing vehicle: TN10BF0025","✅ Vehicle updated: TN10BF0025","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"39932cdfbe3ee43c5c45-a8e6732d6f80923f19f1","order":23,"menu":"Asset Management/Asset Onboarding","feature":"Vehicle","title":"Blacklist Vehicle","describe":"Vehicle Onboarding","file":"Asset-Management/vehicle.spec.ts","line":41,"status":"passed","duration":7130,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":5,"depth":0,"error":false},{"title":"Click","duration":33,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":5,"depth":0,"error":false},{"title":"Click","duration":39,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":2,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":7,"depth":0,"error":false},{"title":"Click","duration":52,"depth":0,"error":false},{"title":"Click","duration":311,"depth":0,"error":false},{"title":"Expect \"toHaveCount\"","duration":12,"depth":0,"error":false},{"title":"Check","duration":438,"depth":0,"error":false},{"title":"Click","duration":50,"depth":0,"error":false},{"title":"Expect \"toBeHidden\"","duration":889,"depth":0,"error":false},{"title":"Fill \"Aut20261028214612 blacklisted by automation\"","duration":19,"depth":0,"error":false},{"title":"Click","duration":49,"depth":0,"error":false},{"title":"Click","duration":502,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":144,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Fill \"TN10BF0025\"","duration":10,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":5,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":5,"depth":0,"error":false},{"title":"Clear","duration":10,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":5,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false}],"logs":["✅ Vehicle page opened","✅ Vehicle blacklisted: TN10BF0025","✅ Vehicle TN10BF0025 blacklisted: true","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"39932cdfbe3ee43c5c45-b301105c341094d3637f","order":24,"menu":"Asset Management/Asset Onboarding","feature":"Vehicle","title":"Reinstate Vehicle","describe":"Vehicle Onboarding","file":"Asset-Management/vehicle.spec.ts","line":57,"status":"passed","duration":5758,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":15,"depth":0,"error":false},{"title":"Click","duration":49,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":6,"depth":0,"error":false},{"title":"Click","duration":30,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":2,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":53,"depth":0,"error":false},{"title":"Click","duration":72,"depth":0,"error":false},{"title":"Expect \"toHaveCount\"","duration":2,"depth":0,"error":false},{"title":"Check","duration":48,"depth":0,"error":false},{"title":"Click","duration":51,"depth":0,"error":false},{"title":"Expect \"toBeHidden\"","duration":4,"depth":0,"error":false},{"title":"Fill \"Aut20261028214612 reinstated by automation\"","duration":14,"depth":0,"error":false},{"title":"Click","duration":45,"depth":0,"error":false},{"title":"Click","duration":618,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":109,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":2,"depth":0,"error":false},{"title":"Fill \"TN10BF0025\"","duration":12,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":34,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Expect \"not toContainText\"","duration":3,"depth":0,"error":false},{"title":"Clear","duration":8,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":11,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false}],"logs":["✅ Vehicle page opened","✅ Vehicle reinstated: TN10BF0025","✅ Vehicle TN10BF0025 blacklisted: false","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"39932cdfbe3ee43c5c45-b3a498335ef5d6caf3c6","order":25,"menu":"Asset Management/Asset Onboarding","feature":"Vehicle","title":"Delete Vehicle","describe":"Vehicle Onboarding","file":"Asset-Management/vehicle.spec.ts","line":73,"status":"passed","duration":5261,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":30,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Click","duration":34,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":1,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":8,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Click","duration":35,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":271,"depth":0,"error":false},{"title":"Click","duration":260,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":129,"depth":0,"error":false}],"logs":["✅ Vehicle page opened","🗑️ Deleting vehicle: TN10BF0025","✅ Vehicle deleted: TN10BF0025","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"829d295150ab7a56d651-a83293770b30979d787b","order":7,"menu":"Asset Management/Asset Onboarding","feature":"Battery","title":"Create Battery","describe":"Battery Onboarding","file":"Asset-Management/battery-onboard.spec.ts","line":12,"status":"passed","duration":3475,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Click","duration":62,"depth":0,"error":false},{"title":"Click","duration":79,"depth":0,"error":false},{"title":"Click","duration":156,"depth":0,"error":false},{"title":"Wait for event \"response\"","duration":1157,"depth":0,"error":false},{"title":"Select option","duration":789,"depth":0,"error":false},{"title":"Select option","duration":781,"depth":0,"error":false},{"title":"Fill \"AUTOBAT20261028214513\"","duration":9,"depth":0,"error":false},{"title":"Press \"Tab\"","duration":17,"depth":0,"error":false},{"title":"Fill \"10101793204113907\"","duration":9,"depth":0,"error":false},{"title":"Press \"Tab\"","duration":11,"depth":0,"error":false},{"title":"Expect \"toBeEnabled\"","duration":4,"depth":0,"error":false},{"title":"Wait for event \"response\"","duration":106,"depth":0,"error":false},{"title":"Click","duration":39,"depth":0,"error":false},{"title":"Battery upload failed: 201 {\"id\":\"6ae21f9487182a716fe6e427\",\"oemId\":\"68946b16b83cd13ae8d966c0\",\"oemName\":\"rne\",\"tenantId\":00000,\"batterySerialNum\":\"AUTOBAT20261028214513\",\"batteryImei\":\"10101793204113907\",\"batteryWeight\":\"12.0\",\"batteryDimension\":\"184X165X325\",\"batteryModelSpecId\":\"6a02c7f2b08729280560f004\",\"batteryModel\":\"GEN 4\",\"batteryVehicleCategory\":\"2 WHEELER\",\"batteryType\":\"Lithium Ion\",\"batteryCapacity\":\"1.44KWH\",\"batteryStatus\":\"Provisioned\",\"createdAt\":1793204116381,\"updatedAt\":1793204116381,\"linked\":false,\"updated\":false,\"version\":0}","duration":0,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":238,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":288,"depth":0,"error":false},{"title":"Expect \"toBeHidden\"","duration":5,"depth":0,"error":false}],"logs":["Battery Serial: AUTOBAT20261028214513","Battery IMEI: 10101793204113907","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"829d295150ab7a56d651-6b3a6de08f0d6bc4b3db","order":8,"menu":"Asset Management/Asset Onboarding","feature":"Battery","title":"View Battery","describe":"Battery Onboarding","file":"Asset-Management/battery-onboard.spec.ts","line":24,"status":"passed","duration":1037,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":17,"depth":0,"error":false},{"title":"Click","duration":54,"depth":0,"error":false},{"title":"Click","duration":52,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Expect \"toHaveCount\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":65,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":229,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":5,"depth":0,"error":false},{"title":"Click","duration":61,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false}],"logs":["✅ Battery list opened","✅ Battery details verified: AUTOBAT20261028214513","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"829d295150ab7a56d651-2fa7fdf0d5d8953d852a","order":9,"menu":"Asset Management/Asset Onboarding","feature":"Battery","title":"Edit Battery","describe":"Battery Onboarding","file":"Asset-Management/battery-onboard.spec.ts","line":35,"status":"passed","duration":2830,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":9,"depth":0,"error":false},{"title":"Click","duration":54,"depth":0,"error":false},{"title":"Click","duration":47,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Fill \"AUTOBAT20261028214513\"","duration":12,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":13,"depth":0,"error":false},{"title":"Expect \"toHaveCount\"","duration":3,"depth":0,"error":false},{"title":"Click","duration":501,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":7,"depth":0,"error":false},{"title":"Expect \"toHaveValue\"","duration":31,"depth":0,"error":false},{"title":"Expect \"toPass\"","duration":10,"depth":0,"error":false},{"title":"Select option","duration":5,"depth":1,"error":false},{"title":"Expect \"toBeEnabled\"","duration":3,"depth":1,"error":false},{"title":"Click","duration":979,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":245,"depth":0,"error":false},{"title":"Click","duration":381,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":5,"depth":0,"error":false}],"logs":["✅ Battery list opened","✅ Battery updated: AUTOBAT20261028214513","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"829d295150ab7a56d651-c81c6268a8f9edd01042","order":10,"menu":"Asset Management/Asset Onboarding","feature":"Battery","title":"Download Battery Template","describe":"Battery Onboarding","file":"Asset-Management/battery-onboard.spec.ts","line":46,"status":"passed","duration":4642,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":6,"depth":0,"error":false},{"title":"Click","duration":29,"depth":0,"error":false},{"title":"Click","duration":56,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Wait for event \"download\"","duration":71,"depth":0,"error":false},{"title":"Click","duration":36,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":20,"depth":0,"error":false},{"title":"Expect \"toMatch\"","duration":0,"depth":0,"error":false}],"logs":["✅ Battery list opened","✅ Battery template downloaded: battery_sample.xlsx","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"829d295150ab7a56d651-b01cd623d26102e5f35e","order":11,"menu":"Asset Management/Asset Onboarding","feature":"Battery","title":"Delete Battery","describe":"Battery Onboarding","file":"Asset-Management/battery-onboard.spec.ts","line":54,"status":"passed","duration":5735,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":29,"depth":0,"error":false},{"title":"Click","duration":28,"depth":0,"error":false},{"title":"Click","duration":43,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":2,"depth":0,"error":false},{"title":"Fill \"AUTOBAT20261028214513\"","duration":9,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":6,"depth":0,"error":false},{"title":"Expect \"toHaveCount\"","duration":3,"depth":0,"error":false},{"title":"Click","duration":490,"depth":0,"error":false},{"title":"Click","duration":495,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":112,"depth":0,"error":false},{"title":"Expect \"toHaveCount\"","duration":8,"depth":0,"error":false}],"logs":["✅ Battery list opened","✅ Battery deleted: AUTOBAT20261028214513","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"93bf87910aea0be77e45-14eea9f648e80607dece","order":26,"menu":"Asset Management/Asset Onboarding","feature":"VTS","title":"Create VTS Device","describe":"VTS Device Onboarding","file":"Asset-Management/vts.spec.ts","line":25,"status":"passed","duration":7319,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":5,"depth":0,"error":false},{"title":"Click","duration":21,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":2,"depth":0,"error":false},{"title":"Click","duration":57,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":166,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Select option","duration":765,"depth":0,"error":false},{"title":"Select option","duration":26,"depth":0,"error":false},{"title":"Select option","duration":774,"depth":0,"error":false},{"title":"Select option","duration":10,"depth":0,"error":false},{"title":"Select option","duration":778,"depth":0,"error":false},{"title":"Fill \"11011261028214423\"","duration":19,"depth":0,"error":false},{"title":"Fill \"202261028214423\"","duration":20,"depth":0,"error":false},{"title":"Fill \"303261028214423\"","duration":13,"depth":0,"error":false},{"title":"Fill \"10/28/2026\"","duration":14,"depth":0,"error":false},{"title":"Click","duration":49,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":67,"depth":0,"error":false}],"logs":["✅ VTS page opened","✅ VTS created with IMEI: 11011261028214423","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"93bf87910aea0be77e45-ae8d05871c4dbc479491","order":27,"menu":"Asset Management/Asset Onboarding","feature":"VTS","title":"View VTS Device","describe":"VTS Device Onboarding","file":"Asset-Management/vts.spec.ts","line":36,"status":"passed","duration":1186,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":5,"depth":0,"error":false},{"title":"Click","duration":41,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":39,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":42,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":245,"depth":0,"error":false},{"title":"Expect \"toHaveText\"","duration":5,"depth":0,"error":false},{"title":"Expect \"toHaveText\"","duration":2,"depth":0,"error":false},{"title":"Expect \"toHaveText\"","duration":3,"depth":0,"error":false},{"title":"Click","duration":273,"depth":0,"error":false}],"logs":["✅ VTS page opened","✅ VTS details verified: 11011261028214423","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"93bf87910aea0be77e45-49b857adcaa44aa5d35c","order":28,"menu":"Asset Management/Asset Onboarding","feature":"VTS","title":"Edit VTS Device - Invalid Selection","describe":"VTS Device Onboarding","file":"Asset-Management/vts.spec.ts","line":47,"status":"passed","duration":6971,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":29,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Click","duration":40,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Click","duration":59,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":6,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Evaluate","duration":5,"depth":0,"error":false},{"title":"Expect \"toPass\"","duration":2175,"depth":0,"error":false},{"title":"Select option","duration":5,"depth":1,"error":false},{"title":"Select option","duration":4,"depth":1,"error":false},{"title":"Expect \"toBeEnabled\"","duration":2021,"depth":1,"error":true},{"title":"Select option","duration":19,"depth":1,"error":false},{"title":"Select option","duration":5,"depth":1,"error":false},{"title":"Expect \"toBeEnabled\"","duration":3,"depth":1,"error":false},{"title":"Click","duration":32,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":109,"depth":0,"error":false}],"logs":["✅ VTS page opened","ℹ️ Device Compliance options: Portable, Regular","⚠️ VTS Edit validation captured successfully","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"93bf87910aea0be77e45-948c6947f0d67a7d1847","order":29,"menu":"Asset Management/Asset Onboarding","feature":"VTS","title":"Delete VTS Device","describe":"VTS Device Onboarding","file":"Asset-Management/vts.spec.ts","line":54,"status":"passed","duration":5748,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":5,"depth":0,"error":false},{"title":"Click","duration":50,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Click","duration":48,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":6,"depth":0,"error":false},{"title":"Fill \"11011261028214423\"","duration":15,"depth":0,"error":false},{"title":"Expect \"toHaveCount\"","duration":8,"depth":0,"error":false},{"title":"Click","duration":437,"depth":0,"error":false},{"title":"Click","duration":597,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":107,"depth":0,"error":false}],"logs":["✅ VTS page opened","🗑️ VTS deleted: 11011261028214423","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"3f022bc69ac74bf7332c-740b3b0ac33edd9b09c2","order":12,"menu":"Asset Management/Asset Onboarding","feature":"Key Fob","title":"Create Key Fob","describe":"Key Fob Onboarding","file":"Asset-Management/keyfob.spec.ts","line":13,"status":"passed","duration":3906,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Click","duration":46,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":181,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":5,"depth":0,"error":false},{"title":"Select option","duration":788,"depth":0,"error":false},{"title":"Fill \"AUTOKEY2026102821453\"","duration":37,"depth":0,"error":false},{"title":"Select option","duration":788,"depth":0,"error":false},{"title":"Select option","duration":778,"depth":0,"error":false},{"title":"Click","duration":71,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":235,"depth":0,"error":false},{"title":"Click","duration":427,"depth":0,"error":false}],"logs":["✅ Key Fob page opened","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"3f022bc69ac74bf7332c-54197d37b19507deb556","order":13,"menu":"Asset Management/Asset Onboarding","feature":"Key Fob","title":"View Key Fob","describe":"Key Fob Onboarding","file":"Asset-Management/keyfob.spec.ts","line":23,"status":"passed","duration":1123,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Click","duration":23,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Click","duration":54,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":240,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":3,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":2,"depth":0,"error":false},{"title":"Click","duration":265,"depth":0,"error":false}],"logs":["✅ Key Fob page opened","✅ Key Fob details verified: AUTOKEY2026102821453","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"3f022bc69ac74bf7332c-1214cbad5feb92cd4570","order":14,"menu":"Asset Management/Asset Onboarding","feature":"Key Fob","title":"Delete Key Fob","describe":"Key Fob Onboarding","file":"Asset-Management/keyfob.spec.ts","line":33,"status":"passed","duration":5267,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":25,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":8,"depth":0,"error":false},{"title":"Check","duration":37,"depth":0,"error":false},{"title":"Click","duration":81,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":244,"depth":0,"error":false},{"title":"Click","duration":262,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":55,"depth":0,"error":false}],"logs":["✅ Key Fob page opened","🗑️ Key Fob deleted: AUTOKEY2026102821453","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"7665961fff2148c7396d-9b6bb47e66ca7ae3eb06","order":0,"menu":"Asset Management/Asset Onboarding","feature":"Asset Link","title":"Create Vehicle","describe":"Asset Linking","file":"Asset-Management/Asset Link/asset-link.spec.ts","line":52,"status":"passed","duration":19273,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":32,"depth":0,"error":false},{"title":"Click","duration":131,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":10,"depth":0,"error":false},{"title":"Click","duration":179,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":6,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":6,"depth":0,"error":false},{"title":"Fill \"TN10BF0001\"","duration":19,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":21,"depth":0,"error":false},{"title":"Wait for timeout","duration":505,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":9,"depth":0,"error":false},{"title":"Query count","duration":3,"depth":0,"error":false},{"title":"Fill \"TN10BF0002\"","duration":8,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":7,"depth":0,"error":false},{"title":"Wait for timeout","duration":513,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":20,"depth":0,"error":false},{"title":"Query count","duration":8,"depth":0,"error":false},{"title":"Fill \"TN10BF0003\"","duration":23,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":14,"depth":0,"error":false},{"title":"Wait for timeout","duration":507,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":25,"depth":0,"error":false},{"title":"Query count","duration":8,"depth":0,"error":false},{"title":"Fill \"TN10BF0004\"","duration":35,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":20,"depth":0,"error":false},{"title":"Wait for timeout","duration":509,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":6,"depth":0,"error":false},{"title":"Query count","duration":3,"depth":0,"error":false},{"title":"Fill \"TN10BF0005\"","duration":13,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":15,"depth":0,"error":false},{"title":"Wait for timeout","duration":507,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":7,"depth":0,"error":false},{"title":"Query count","duration":4,"depth":0,"error":false},{"title":"Fill \"TN10BF0006\"","duration":13,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":14,"depth":0,"error":false},{"title":"Wait for timeout","duration":509,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":9,"depth":0,"error":false},{"title":"Query count","duration":2,"depth":0,"error":false},{"title":"Fill \"TN10BF0007\"","duration":28,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":12,"depth":0,"error":false},{"title":"Wait for timeout","duration":510,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":16,"depth":0,"error":false},{"title":"Query count","duration":11,"depth":0,"error":false},{"title":"Fill \"TN10BF0008\"","duration":24,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":11,"depth":0,"error":false},{"title":"Wait for timeout","duration":507,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":14,"depth":0,"error":false},{"title":"Query count","duration":10,"depth":0,"error":false},{"title":"Fill \"TN10BF0009\"","duration":30,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":14,"depth":0,"error":false},{"title":"Wait for timeout","duration":503,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":9,"depth":0,"error":false},{"title":"Query count","duration":5,"depth":0,"error":false},{"title":"Fill \"TN10BF0010\"","duration":8,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":11,"depth":0,"error":false},{"title":"Wait for timeout","duration":509,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":14,"depth":0,"error":false},{"title":"Query count","duration":7,"depth":0,"error":false},{"title":"Fill \"TN10BF0011\"","duration":28,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":25,"depth":0,"error":false},{"title":"Wait for timeout","duration":507,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":17,"depth":0,"error":false},{"title":"Query count","duration":11,"depth":0,"error":false},{"title":"Fill \"TN10BF0012\"","duration":27,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":14,"depth":0,"error":false},{"title":"Wait for timeout","duration":501,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":13,"depth":0,"error":false},{"title":"Query count","duration":5,"depth":0,"error":false},{"title":"Fill \"TN10BF0013\"","duration":9,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":8,"depth":0,"error":false},{"title":"Wait for timeout","duration":519,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":15,"depth":0,"error":false},{"title":"Query count","duration":5,"depth":0,"error":false},{"title":"Fill \"TN10BF0014\"","duration":6,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":7,"depth":0,"error":false},{"title":"Wait for timeout","duration":512,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":14,"depth":0,"error":false},{"title":"Query count","duration":5,"depth":0,"error":false},{"title":"Fill \"TN10BF0015\"","duration":8,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":8,"depth":0,"error":false},{"title":"Wait for timeout","duration":505,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":5,"depth":0,"error":false},{"title":"Query count","duration":3,"depth":0,"error":false},{"title":"Fill \"TN10BF0016\"","duration":10,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":7,"depth":0,"error":false},{"title":"Wait for timeout","duration":505,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":17,"depth":0,"error":false},{"title":"Query count","duration":6,"depth":0,"error":false},{"title":"Fill \"TN10BF0017\"","duration":19,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":10,"depth":0,"error":false},{"title":"Wait for timeout","duration":505,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":13,"depth":0,"error":false},{"title":"Query count","duration":3,"depth":0,"error":false},{"title":"Fill \"TN10BF0018\"","duration":10,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":7,"depth":0,"error":false},{"title":"Wait for timeout","duration":507,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":9,"depth":0,"error":false},{"title":"Query count","duration":8,"depth":0,"error":false},{"title":"Fill \"TN10BF0019\"","duration":8,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":10,"depth":0,"error":false},{"title":"Wait for timeout","duration":508,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":14,"depth":0,"error":false},{"title":"Query count","duration":2,"depth":0,"error":false},{"title":"Fill \"TN10BF0020\"","duration":6,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":9,"depth":0,"error":false},{"title":"Wait for timeout","duration":511,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":8,"depth":0,"error":false},{"title":"Query count","duration":6,"depth":0,"error":false},{"title":"Fill \"TN10BF0021\"","duration":8,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":13,"depth":0,"error":false},{"title":"Wait for timeout","duration":506,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":10,"depth":0,"error":false},{"title":"Query count","duration":15,"depth":0,"error":false},{"title":"Fill \"TN10BF0022\"","duration":30,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":13,"depth":0,"error":false},{"title":"Wait for timeout","duration":516,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Query count","duration":2,"depth":0,"error":false},{"title":"Fill \"TN10BF0023\"","duration":10,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":6,"depth":0,"error":false},{"title":"Wait for timeout","duration":504,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":22,"depth":0,"error":false}],"logs":["==========================================","🚀 STARTING BROWSER","==========================================","♻️ Restoring saved session...","✅ Saved session is valid","==========================================","✅ LOGIN SUCCESSFUL","URL: [redacted]/#/pages/dashboard/summary-dashboard","==========================================","📄 Reusing authenticated page: [redacted]/#/pages/dashboard/summary-dashboard","✅ Vehicle page opened","✅ Available vehicle number: TN10BF0024","🚗 Using vehicle: TN10BF0024","✅ Vehicle created: TN10BF0024","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"7665961fff2148c7396d-c91047bf4026ce5ff96a","order":1,"menu":"Asset Management/Asset Onboarding","feature":"Asset Link","title":"Create VTS Device","describe":"Asset Linking","file":"Asset-Management/Asset Link/asset-link.spec.ts","line":68,"status":"passed","duration":7454,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":6,"depth":0,"error":false},{"title":"Click","duration":48,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":51,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":8,"depth":0,"error":false},{"title":"Click","duration":140,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Select option","duration":781,"depth":0,"error":false},{"title":"Select option","duration":9,"depth":0,"error":false},{"title":"Select option","duration":788,"depth":0,"error":false},{"title":"Select option","duration":12,"depth":0,"error":false},{"title":"Select option","duration":786,"depth":0,"error":false},{"title":"Fill \"11011793204063955\"","duration":11,"depth":0,"error":false},{"title":"Fill \"202793204063955\"","duration":16,"depth":0,"error":false},{"title":"Fill \"303793204063955\"","duration":23,"depth":0,"error":false},{"title":"Fill \"10/28/2026\"","duration":13,"depth":0,"error":false},{"title":"Click","duration":48,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":140,"depth":0,"error":false}],"logs":["✅ VTS page opened","✅ VTS created with IMEI: 11011793204063955","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"7665961fff2148c7396d-0548f42129973735b69e","order":2,"menu":"Asset Management/Asset Onboarding","feature":"Asset Link","title":"Create Key Fob","describe":"Asset Linking","file":"Asset-Management/Asset Link/asset-link.spec.ts","line":80,"status":"passed","duration":3848,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":5,"depth":0,"error":false},{"title":"Click","duration":47,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":118,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":2,"depth":0,"error":false},{"title":"Select option","duration":789,"depth":0,"error":false},{"title":"Fill \"AUTOKEY1793204063955\"","duration":15,"depth":0,"error":false},{"title":"Select option","duration":779,"depth":0,"error":false},{"title":"Select option","duration":805,"depth":0,"error":false},{"title":"Click","duration":68,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":249,"depth":0,"error":false},{"title":"Click","duration":413,"depth":0,"error":false}],"logs":["✅ Key Fob page opened","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"7665961fff2148c7396d-23c4523c939bee4a1cae","order":3,"menu":"Asset Management/Asset Onboarding","feature":"Asset Link","title":"Create Battery","describe":"Asset Linking","file":"Asset-Management/Asset Link/asset-link.spec.ts","line":90,"status":"passed","duration":3463,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":5,"depth":0,"error":false},{"title":"Click","duration":45,"depth":0,"error":false},{"title":"Click","duration":54,"depth":0,"error":false},{"title":"Click","duration":184,"depth":0,"error":false},{"title":"Wait for event \"response\"","duration":1140,"depth":0,"error":false},{"title":"Select option","duration":777,"depth":0,"error":false},{"title":"Select option","duration":788,"depth":0,"error":false},{"title":"Fill \"AUTOBAT1793204063955\"","duration":14,"depth":0,"error":false},{"title":"Press \"Tab\"","duration":13,"depth":0,"error":false},{"title":"Fill \"10101793204063955\"","duration":11,"depth":0,"error":false},{"title":"Press \"Tab\"","duration":11,"depth":0,"error":false},{"title":"Expect \"toBeEnabled\"","duration":5,"depth":0,"error":false},{"title":"Wait for event \"response\"","duration":118,"depth":0,"error":false},{"title":"Click","duration":38,"depth":0,"error":false},{"title":"Battery upload failed: 201 {\"id\":\"6ae21f8787182a716fe6e41d\",\"oemId\":\"68946b16b83cd13ae8d966c0\",\"oemName\":\"rne\",\"tenantId\":00000,\"batterySerialNum\":\"AUTOBAT1793204063955\",\"batteryImei\":\"10101793204063955\",\"batteryWeight\":\"12.0\",\"batteryDimension\":\"184X165X325\",\"batteryModelSpecId\":\"6a02c7f2b08729280560f004\",\"batteryModel\":\"GEN 4\",\"batteryVehicleCategory\":\"2 WHEELER\",\"batteryType\":\"Lithium Ion\",\"batteryCapacity\":\"1.44KWH\",\"batteryStatus\":\"Provisioned\",\"createdAt\":1793204103601,\"updatedAt\":1793204103601,\"linked\":false,\"updated\":false,\"version\":0}","duration":0,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":228,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":284,"depth":0,"error":false},{"title":"Expect \"toBeHidden\"","duration":6,"depth":0,"error":false}],"logs":["⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"7665961fff2148c7396d-c4a2dc61ecef4585af50","order":4,"menu":"Asset Management/Asset Onboarding","feature":"Asset Link","title":"Link Assets","describe":"Asset Linking","file":"Asset-Management/Asset Link/asset-link.spec.ts","line":103,"status":"passed","duration":3221,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Click","duration":35,"depth":0,"error":false},{"title":"Click","duration":114,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":5,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Wait for event \"response\"","duration":138,"depth":0,"error":false},{"title":"Wait for event \"response\"","duration":130,"depth":0,"error":false},{"title":"Wait for event \"response\"","duration":124,"depth":0,"error":false},{"title":"Wait for event \"response\"","duration":132,"depth":0,"error":false},{"title":"Click","duration":79,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":6,"depth":0,"error":false},{"title":"Expect \"toPass\"","duration":65,"depth":0,"error":false},{"title":"Click","duration":56,"depth":1,"error":false},{"title":"Expect \"toBeVisible\"","duration":2,"depth":1,"error":false},{"title":"Fill \"TN10BF0024\"","duration":13,"depth":0,"error":false},{"title":"Click","duration":270,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":6,"depth":0,"error":false},{"title":"Expect \"toPass\"","duration":133,"depth":0,"error":false},{"title":"Click","duration":125,"depth":1,"error":false},{"title":"Expect \"toBeVisible\"","duration":4,"depth":1,"error":false},{"title":"Fill \"11011793204063955\"","duration":10,"depth":0,"error":false},{"title":"Click","duration":286,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":4,"depth":0,"error":false},{"title":"Expect \"toPass\"","duration":93,"depth":0,"error":false},{"title":"Click","duration":82,"depth":1,"error":false},{"title":"Expect \"toBeVisible\"","duration":5,"depth":1,"error":false},{"title":"Fill \"AUTOKEY1793204063955\"","duration":11,"depth":0,"error":false},{"title":"Click","duration":269,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":4,"depth":0,"error":false},{"title":"Expect \"toPass\"","duration":142,"depth":0,"error":false},{"title":"Click","duration":125,"depth":1,"error":false},{"title":"Expect \"toBeVisible\"","duration":7,"depth":1,"error":false},{"title":"Fill \"AUTOBAT1793204063955\"","duration":20,"depth":0,"error":false},{"title":"Click","duration":153,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":7,"depth":0,"error":false},{"title":"Click","duration":139,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":245,"depth":0,"error":false},{"title":"Click","duration":447,"depth":0,"error":false}],"logs":["==========================================","LINK ASSETS","==========================================","✅ Linked pairs list opened","✅ Link Assets page opened","✅ Selected: TN10BF0024","✅ Selected: 11011793204063955","✅ Selected: AUTOKEY1793204063955","✅ Selected: AUTOBAT1793204063955","✅ Assets linked to vehicle: TN10BF0024","✅ Link Assets completed","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"7665961fff2148c7396d-21d00df39b66065b6866","order":5,"menu":"Asset Management/Asset Onboarding","feature":"Asset Link","title":"Verify Linked Pair","describe":"Asset Linking","file":"Asset-Management/Asset Link/asset-link.spec.ts","line":122,"status":"passed","duration":600,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Click","duration":30,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":6,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Fill \"TN10BF0024\"","duration":10,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":9,"depth":0,"error":false},{"title":"Expect \"toHaveCount\"","duration":8,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":3,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":3,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":6,"depth":0,"error":false}],"logs":["==========================================","VERIFY LINKED PAIR","==========================================","✅ Linked pairs list opened","✅ Linked pair verified for vehicle: TN10BF0024","✅ Verify Linked Pair completed","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"7665961fff2148c7396d-658ede5fe0ab7ae67167","order":6,"menu":"Asset Management/Asset Onboarding","feature":"Asset Link","title":"Delete Linked Pair","describe":"Asset Linking","file":"Asset-Management/Asset Link/asset-link.spec.ts","line":141,"status":"passed","duration":5398,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Click","duration":55,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":6,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":2,"depth":0,"error":false},{"title":"Fill \"TN10BF0024\"","duration":12,"depth":0,"error":false},{"title":"Press \"Enter\"","duration":14,"depth":0,"error":false},{"title":"Expect \"toHaveCount\"","duration":3,"depth":0,"error":false},{"title":"Check","duration":154,"depth":0,"error":false},{"title":"Click","duration":45,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":245,"depth":0,"error":false},{"title":"Click","duration":253,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":112,"depth":0,"error":false},{"title":"Expect \"toHaveCount\"","duration":27,"depth":0,"error":false}],"logs":["==========================================","DELETE LINKED PAIR","==========================================","✅ Linked pairs list opened","✅ Linked pair deleted for vehicle: TN10BF0024","✅ Delete Linked Pair completed","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"b0c109a788d09533c7e6-ca701d3d6d848b69f9b5","order":41,"menu":"User Management/Technician","feature":"","title":"Create Technician","describe":"Technician Management","file":"UserManagement/technician.spec.ts","line":33,"status":"passed","duration":5924,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Click","duration":21,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":406,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":9,"depth":0,"error":false},{"title":"Click","duration":198,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":9,"depth":0,"error":false},{"title":"Click","duration":37,"depth":0,"error":false},{"title":"Fill \"9976511405\"","duration":12,"depth":0,"error":false},{"title":"Click","duration":56,"depth":0,"error":false},{"title":"Click","duration":80,"depth":0,"error":false},{"title":"Fill \"TechnicianQCVII\"","duration":12,"depth":0,"error":false},{"title":"Click","duration":949,"depth":0,"error":false},{"title":"Click","duration":55,"depth":0,"error":false},{"title":"Fill \"992026214811405\"","duration":14,"depth":0,"error":false},{"title":"Click","duration":435,"depth":0,"error":false},{"title":"Fill \"560062\"","duration":17,"depth":0,"error":false},{"title":"Select option","duration":12,"depth":0,"error":false},{"title":"Select option","duration":5,"depth":0,"error":false},{"title":"Select option","duration":768,"depth":0,"error":false},{"title":"Fill \"101, Ganapathipura, Konankunte\"","duration":24,"depth":0,"error":false},{"title":"Click","duration":56,"depth":0,"error":false},{"title":"Click","duration":36,"depth":0,"error":false},{"title":"Click","duration":490,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":1411,"depth":0,"error":false},{"title":"Click","duration":256,"depth":0,"error":false}],"logs":["==========================================","CREATE TECHNICIAN","==========================================","✅ Technician page opened","✅ Technician onboarding opened","✅ Technician details entered: TechnicianQCVII","✅ Technician submission completed","✅ Technician successfully onboarded","✅ Create Technician completed","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"b0c109a788d09533c7e6-e0895e114f2334f4df96","order":42,"menu":"User Management/Technician","feature":"","title":"View Technician","describe":"Technician Management","file":"UserManagement/technician.spec.ts","line":63,"status":"passed","duration":4560,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":29,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Click","duration":40,"depth":0,"error":false}],"logs":["==========================================","VIEW TECHNICIAN","==========================================","✅ Technician details opened","✅ View Technician completed","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"b0c109a788d09533c7e6-3aeee7042e54dac7599a","order":43,"menu":"User Management/Technician","feature":"","title":"Edit Technician","describe":"Technician Management","file":"UserManagement/technician.spec.ts","line":80,"status":"passed","duration":2894,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Click","duration":75,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":8,"depth":0,"error":false},{"title":"Click","duration":55,"depth":0,"error":false},{"title":"Wait for event \"response\"","duration":421,"depth":0,"error":false},{"title":"Select option","duration":41,"depth":0,"error":false},{"title":"Click","duration":49,"depth":0,"error":false},{"title":"Click","duration":298,"depth":0,"error":false},{"title":"Wait for selector","duration":4,"depth":0,"error":false},{"title":"Click","duration":36,"depth":0,"error":false},{"title":"Expect \"toBeHidden\"","duration":225,"depth":0,"error":false},{"title":"Click","duration":25,"depth":0,"error":false},{"title":"Click","duration":50,"depth":0,"error":false},{"title":"Click","duration":492,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":119,"depth":0,"error":false},{"title":"Click","duration":488,"depth":0,"error":false}],"logs":["==========================================","EDIT TECHNICIAN","==========================================","✅ Technician details updated: KARNATAKA, BALLARI","✅ Technician successfully updated","✅ Edit Technician completed","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"a5b84428db2bb4ecd1e3-b310060cd8abb0da4924","order":31,"menu":"Role Management/Roles","feature":"","title":"Create Role","describe":"Role Management","file":"RoleManagement/role.spec.ts","line":28,"status":"passed","duration":5583,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":47,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":46,"depth":0,"error":false},{"title":"Click","duration":100,"depth":0,"error":false},{"title":"Fill \"RoleDBJFR\"","duration":11,"depth":0,"error":false},{"title":"Fill \"RoleDBJFR description\"","duration":13,"depth":0,"error":false},{"title":"Click","duration":45,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":8,"depth":0,"error":false},{"title":"Check","duration":56,"depth":0,"error":false},{"title":"Click","duration":51,"depth":0,"error":false},{"title":"Click","duration":46,"depth":0,"error":false},{"title":"Click","duration":52,"depth":0,"error":false},{"title":"Click","duration":48,"depth":0,"error":false},{"title":"Click","duration":48,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Expect \"toHaveCount\"","duration":4445,"depth":0,"error":false},{"title":"Fill \"RoleDBJFR\"","duration":11,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":3,"depth":0,"error":false}],"logs":["==========================================","CREATE ROLE","==========================================","✅ Role Management page opened","✅ Role created: RoleDBJFR","✅ Create Role completed","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"a5b84428db2bb4ecd1e3-244e5290601999c850f8","order":32,"menu":"Role Management/Roles","feature":"","title":"Edit Role","describe":"Role Management","file":"RoleManagement/role.spec.ts","line":48,"status":"passed","duration":5444,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Fill \"RoleDBJFR\"","duration":15,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":3,"depth":0,"error":false},{"title":"Click","duration":59,"depth":0,"error":false},{"title":"Fill \"RoleDBJFR updated\"","duration":11,"depth":0,"error":false},{"title":"Click","duration":94,"depth":0,"error":false},{"title":"Click","duration":44,"depth":0,"error":false},{"title":"Click","duration":34,"depth":0,"error":false},{"title":"Click","duration":31,"depth":0,"error":false},{"title":"Click","duration":33,"depth":0,"error":false},{"title":"Click","duration":32,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":2,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":110,"depth":0,"error":false},{"title":"Expect \"toHaveCount\"","duration":4431,"depth":0,"error":false}],"logs":["==========================================","EDIT ROLE","==========================================","✅ Role updated: RoleDBJFR updated","✅ Edit Role completed","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"a5b84428db2bb4ecd1e3-05055c07efbd92b6126e","order":33,"menu":"Role Management/Roles","feature":"","title":"View Role","describe":"Role Management","file":"RoleManagement/role.spec.ts","line":68,"status":"passed","duration":758,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Fill \"RoleDBJFR\"","duration":12,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":8,"depth":0,"error":false},{"title":"Click","duration":53,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":113,"depth":0,"error":false},{"title":"Expect \"toHaveCount\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":32,"depth":0,"error":false}],"logs":["==========================================","VIEW ROLE","==========================================","✅ Role details verified: RoleDBJFR","✅ View Role completed","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"a5b84428db2bb4ecd1e3-86620ec4e87d5eb45673","order":34,"menu":"Role Management/Roles","feature":"","title":"Delete Role","describe":"Role Management","file":"RoleManagement/role.spec.ts","line":87,"status":"passed","duration":5184,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Fill \"RoleDBJFR\"","duration":19,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":10,"depth":0,"error":false},{"title":"Click","duration":35,"depth":0,"error":false},{"title":"Click","duration":49,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":100,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":5,"depth":0,"error":false},{"title":"Expect \"toHaveCount\"","duration":4434,"depth":0,"error":false}],"logs":["==========================================","DELETE ROLE","==========================================","✅ Role deleted: RoleDBJFR","✅ Delete Role completed","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"56dbebf0593ba12c4ddc-2257269eb485f70bda03","order":35,"menu":"Role Management/Users","feature":"","title":"Create Role for User","describe":"User Management","file":"RoleManagement/user.spec.ts","line":33,"status":"passed","duration":5569,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":42,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Clear","duration":14,"depth":0,"error":false},{"title":"Click","duration":45,"depth":0,"error":false},{"title":"Fill \"UsersRoleUTOAG\"","duration":9,"depth":0,"error":false},{"title":"Fill \"UsersRoleUTOAG\"","duration":16,"depth":0,"error":false},{"title":"Click","duration":50,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Check","duration":72,"depth":0,"error":false},{"title":"Click","duration":40,"depth":0,"error":false},{"title":"Click","duration":46,"depth":0,"error":false},{"title":"Click","duration":51,"depth":0,"error":false},{"title":"Click","duration":49,"depth":0,"error":false},{"title":"Click","duration":83,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Expect \"toHaveCount\"","duration":4478,"depth":0,"error":false},{"title":"Fill \"UsersRoleUTOAG\"","duration":18,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":7,"depth":0,"error":false}],"logs":["==========================================","CREATE ROLE FOR USER","==========================================","✅ Role Management page opened","✅ Role created: UsersRoleUTOAG","✅ Create Role for User completed","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"56dbebf0593ba12c4ddc-307ace2db1a4206c9116","order":36,"menu":"Role Management/Users","feature":"","title":"Create User","describe":"User Management","file":"RoleManagement/user.spec.ts","line":53,"status":"passed","duration":6965,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Click","duration":39,"depth":0,"error":false},{"title":"Click","duration":61,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":82,"depth":0,"error":false},{"title":"Click","duration":45,"depth":0,"error":false},{"title":"Fill \"9868837852\"","duration":13,"depth":0,"error":false},{"title":"Click","duration":53,"depth":0,"error":false},{"title":"Click","duration":31,"depth":0,"error":false},{"title":"Fill \"user9868837852@example.com\"","duration":6,"depth":0,"error":false},{"title":"Click","duration":45,"depth":0,"error":false},{"title":"Click","duration":49,"depth":0,"error":false},{"title":"Fill \"UserUTOAG\"","duration":11,"depth":0,"error":false},{"title":"Click","duration":941,"depth":0,"error":false},{"title":"Click","duration":141,"depth":0,"error":false},{"title":"Click","duration":36,"depth":0,"error":false},{"title":"Click","duration":36,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":877,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":6,"depth":0,"error":false},{"title":"Expect \"toHaveCount\"","duration":3945,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":8,"depth":0,"error":false}],"logs":["==========================================","CREATE USER","==========================================","✅ Users page opened","✅ User created: UserUTOAG","✅ Create User completed","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"56dbebf0593ba12c4ddc-2cdba11c389858b785ec","order":37,"menu":"Role Management/Users","feature":"","title":"Assign Role to User","describe":"User Management","file":"RoleManagement/user.spec.ts","line":74,"status":"passed","duration":5376,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Click","duration":41,"depth":0,"error":false},{"title":"Click","duration":77,"depth":0,"error":false},{"title":"Click","duration":35,"depth":0,"error":false},{"title":"Click","duration":49,"depth":0,"error":false},{"title":"Click","duration":50,"depth":0,"error":false},{"title":"Click","duration":45,"depth":0,"error":false},{"title":"Click","duration":35,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":110,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":2,"depth":0,"error":false},{"title":"Expect \"toHaveCount\"","duration":4399,"depth":0,"error":false}],"logs":["==========================================","ASSIGN ROLE TO USER","==========================================","✅ Role assigned: UsersRoleUTOAG","✅ Assign Role to User completed","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"56dbebf0593ba12c4ddc-5accf818e0d6dad3206f","order":38,"menu":"Role Management/Users","feature":"","title":"Unassign Role from User","describe":"User Management","file":"RoleManagement/user.spec.ts","line":93,"status":"passed","duration":5128,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Click","duration":30,"depth":0,"error":false},{"title":"Click","duration":34,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":111,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Expect \"toHaveCount\"","duration":4425,"depth":0,"error":false}],"logs":["==========================================","UNASSIGN ROLE FROM USER","==========================================","✅ Role unassigned","✅ Unassign Role from User completed","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"56dbebf0593ba12c4ddc-cd5a61e91f96c2d2f84c","order":39,"menu":"Role Management/Users","feature":"","title":"Delete User","describe":"User Management","file":"RoleManagement/user.spec.ts","line":110,"status":"passed","duration":5167,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Click","duration":25,"depth":0,"error":false},{"title":"Click","duration":48,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":110,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Expect \"toHaveCount\"","duration":4448,"depth":0,"error":false}],"logs":["==========================================","DELETE USER","==========================================","✅ User deleted: UserUTOAG","✅ Delete User completed","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"56dbebf0593ba12c4ddc-ded4b150836badf82147","order":40,"menu":"Role Management/Users","feature":"","title":"Delete Role for User","describe":"User Management","file":"RoleManagement/user.spec.ts","line":129,"status":"passed","duration":5261,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":4,"depth":0,"error":false},{"title":"Click","duration":48,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":9,"depth":0,"error":false},{"title":"Fill \"UsersRoleUTOAG\"","duration":8,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":37,"depth":0,"error":false},{"title":"Click","duration":36,"depth":0,"error":false},{"title":"Click","duration":32,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":117,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Expect \"toHaveCount\"","duration":4442,"depth":0,"error":false}],"logs":["==========================================","DELETE ROLE FOR USER","==========================================","✅ Role Management page opened","✅ Role deleted: UsersRoleUTOAG","✅ Delete Role for User completed","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]},{"id":"3d577f023f7e34a115b1-5e588a7378ef99ca8315","order":30,"menu":"Partner Management","feature":"","title":"Onboard Company","describe":"Partner Management","file":"PartnerManagement/company.spec.ts","line":35,"status":"passed","duration":7760,"retry":0,"annotations":[],"error":"","stack":"","snippet":"","screenshot":"","steps":[{"title":"Expect \"toBeVisible\"","duration":5,"depth":0,"error":false},{"title":"Click","duration":23,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":122,"depth":0,"error":false},{"title":"Click","duration":124,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Fill \"company9987913012\"","duration":13,"depth":0,"error":false},{"title":"Click","duration":49,"depth":0,"error":false},{"title":"Fill \"CompanyPRDYB\"","duration":115,"depth":0,"error":false},{"title":"Select option","duration":13,"depth":0,"error":false},{"title":"Fill \"560062\"","duration":13,"depth":0,"error":false},{"title":"Press \"Tab\"","duration":10,"depth":0,"error":false},{"title":"Select option","duration":6,"depth":0,"error":false},{"title":"Select option","duration":6,"depth":0,"error":false},{"title":"Fill \"Sample address line\"","duration":13,"depth":0,"error":false},{"title":"Click","duration":59,"depth":0,"error":false},{"title":"Click","duration":41,"depth":0,"error":false},{"title":"Check","duration":44,"depth":0,"error":false},{"title":"Click","duration":37,"depth":0,"error":false},{"title":"Click","duration":53,"depth":0,"error":false},{"title":"Select option","duration":9,"depth":0,"error":false},{"title":"Fill \"1000\"","duration":7,"depth":0,"error":false},{"title":"Click","duration":45,"depth":0,"error":false},{"title":"Click","duration":50,"depth":0,"error":false},{"title":"Fill \"100\"","duration":10,"depth":0,"error":false},{"title":"Click","duration":36,"depth":0,"error":false},{"title":"Click","duration":33,"depth":0,"error":false},{"title":"Click","duration":32,"depth":0,"error":false},{"title":"Check","duration":30,"depth":0,"error":false},{"title":"Click","duration":38,"depth":0,"error":false},{"title":"Click","duration":48,"depth":0,"error":false},{"title":"Select option","duration":6,"depth":0,"error":false},{"title":"Fill \"100\"","duration":9,"depth":0,"error":false},{"title":"Click","duration":33,"depth":0,"error":false},{"title":"Click","duration":29,"depth":0,"error":false},{"title":"Fill \"100\"","duration":7,"depth":0,"error":false},{"title":"Click","duration":47,"depth":0,"error":false},{"title":"Click","duration":33,"depth":0,"error":false},{"title":"Click","duration":73,"depth":0,"error":false},{"title":"Fill \"8687513012\"","duration":11,"depth":0,"error":false},{"title":"Click","duration":47,"depth":0,"error":false},{"title":"Click","duration":194,"depth":0,"error":false},{"title":"Fill \"com8687513012@example.com\"","duration":9,"depth":0,"error":false},{"title":"Click","duration":47,"depth":0,"error":false},{"title":"Click","duration":30,"depth":0,"error":false},{"title":"Fill \"AdminPRDYB\"","duration":6,"depth":0,"error":false},{"title":"Click","duration":45,"depth":0,"error":false},{"title":"Check","duration":32,"depth":0,"error":false},{"title":"Click","duration":35,"depth":0,"error":false},{"title":"Click","duration":30,"depth":0,"error":false},{"title":"Click","duration":34,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":893,"depth":0,"error":false},{"title":"Expect \"toBeVisible\"","duration":3,"depth":0,"error":false},{"title":"Expect \"toHaveCount\"","duration":4439,"depth":0,"error":false},{"title":"Fill \"company9987913012\"","duration":16,"depth":0,"error":false},{"title":"Expect \"toContainText\"","duration":12,"depth":0,"error":false}],"logs":["==========================================","ONBOARD COMPANY","==========================================","✅ Partner Management page opened","✅ Add company opened","✅ Company onboarded: CompanyPRDYB","✅ Onboard Company completed","⏳ Waiting for popups to close...","✅ No popups open, next test can start"]}]}</script>
+<script>
+(function () {
+  var DATA = JSON.parse(document.getElementById('report-data').textContent);
+
+  var STATUS = {
+    passed:  'Passed',
+    failed:  'Failed',
+    known:   'Known bug',
+    flaky:   'Flaky',
+    skipped: 'Skipped',
+    pending: 'Not run'
+  };
+  var ORDER = ['passed', 'failed', 'known', 'flaky', 'skipped', 'pending'];
+  var CHEV = '<svg class="chev" viewBox="0 0 16 16"><path d="M6 3l5 5-5 5"/></svg>';
+  var SEP = ' \u203A ';
+
+  var state = { menu: '', feature: '', status: 'all', query: '' };
+  var openGroups = {};
+  var openTests = {};
+  var closedTestGroups = {};
+
+  // ---------- helpers ----------
+  function h(tag, attrs, children) {
+    var el = document.createElement(tag);
+    if (attrs) {
+      Object.keys(attrs).forEach(function (k) {
+        var v = attrs[k];
+        if (v === null || v === undefined || v === false) return;
+        if (k === 'class') el.className = v;
+        else if (k === 'text') el.textContent = v;
+        else if (k === 'html') el.innerHTML = v;
+        else if (k.indexOf('on') === 0) el.addEventListener(k.slice(2), v);
+        else el.setAttribute(k, v === true ? '' : v);
+      });
+    }
+    (children || []).forEach(function (c) {
+      if (c === null || c === undefined) return;
+      el.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+    });
+    return el;
+  }
+  function svgIcon(name) {
+    return '<svg viewBox="0 0 24 24">' + (DATA.icons[name] || DATA.icons.unmapped) + '</svg>';
+  }
+  function fmtDur(ms) {
+    if (!ms) return '0s';
+    if (ms < 1000) return ms + 'ms';
+    var s = ms / 1000;
+    if (s < 60) return (s < 10 ? s.toFixed(1) : Math.round(s)) + 's';
+    var m = Math.floor(s / 60);
+    return m + 'm ' + Math.round(s % 60) + 's';
+  }
+  function fmtDate(iso) {
+    return new Date(iso).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+  function countOf(tests) {
+    var c = { total: tests.length, duration: 0 };
+    ORDER.forEach(function (s) { c[s] = 0; });
+    tests.forEach(function (t) { c[t.status]++; c.duration += t.duration; });
+    c.ok = c.passed + c.flaky;
+    return c;
+  }
+  function groupOf(key) { return key.split('/')[0]; }
+  function inMenu(t, key) { return !key || t.menu === key || t.menu.indexOf(key + '/') === 0; }
+  function testsIn(key, feature) {
+    return DATA.tests.filter(function (t) { return inMenu(t, key) && (!feature || t.feature === feature); });
+  }
+  function matches(t) {
+    if (state.status !== 'all' && t.status !== state.status) return false;
+    if (state.query) {
+      var hay = (t.title + ' ' + t.menu + ' ' + t.feature + ' ' + t.describe + ' ' + t.file).toLowerCase();
+      if (hay.indexOf(state.query) < 0) return false;
+    }
+    return true;
+  }
+  function menuLabel(t) { return t.menu.split('/').concat(t.feature ? [t.feature] : []).join(SEP); }
+
+  // Portal menu + an "Unmapped" group when some specs are not in SPEC_MENU
+  var MENU = DATA.menu.slice();
+  if (DATA.tests.some(function (t) { return t.menu === 'Unmapped'; })) {
+    MENU.push({ name: 'Unmapped', icon: 'unmapped' });
+  }
+  function subDef(key) {
+    var parts = key.split('/');
+    var g = MENU.filter(function (m) { return m.name === parts[0]; })[0];
+    if (!g || !parts[1] || !g.subs) return null;
+    return g.subs.filter(function (s) { return s.name === parts[1]; })[0] || null;
+  }
+
+  // ---------- session-only UI memory (open menu groups) ----------
+  function saveOpen() {
+    try { sessionStorage.setItem('reportOpenGroups', JSON.stringify(openGroups)); } catch (e) {}
+  }
+  function restoreOpen() {
+    try { openGroups = JSON.parse(sessionStorage.getItem('reportOpenGroups') || '{}') || {}; } catch (e) { openGroups = {}; }
+  }
+
+  // ---------- navigation ----------
+  function selectMenu(key, feature) {
+    state.menu = key;
+    state.feature = feature || '';
+    if (key) openGroups[groupOf(key)] = true;
+    saveOpen();
+    try { history.replaceState(null, '', key ? '#' + encodeURIComponent(key + (feature ? '|' + feature : '')) : location.pathname + location.search); } catch (e) {}
+    render();
+    window.scrollTo(0, 0);
+  }
+
+  function cnts(tests) {
+    if (!tests.length) return null;
+    var c = countOf(tests);
+    var wrap = h('span', { class: 'cnts' });
+    if (c.ok) wrap.appendChild(h('span', { class: 'cnt pass', title: c.ok + ' passed', text: String(c.ok) }));
+    if (c.failed) wrap.appendChild(h('span', { class: 'cnt fail', title: c.failed + ' failed', text: String(c.failed) }));
+    if (c.known) wrap.appendChild(h('span', { class: 'cnt known', title: c.known + ' known bug', text: String(c.known) }));
+    return wrap;
+  }
+
+  function renderSidebar() {
+    var nav = document.getElementById('nav');
+    nav.innerHTML = '';
+
+    nav.appendChild(h('div', { class: 'nav-group leaf' }, [
+      h('button', { type: 'button', class: 'nav-main' + (state.menu === '' ? ' active' : ''), onclick: function () { selectMenu(''); } }, [
+        h('span', { class: 'nav-icon', html: svgIcon('all') }),
+        h('span', { class: 'nav-label', text: 'All Results' }),
+        cnts(DATA.tests)
+      ])
+    ]));
+
+    MENU.forEach(function (g) {
+      var tests = testsIn(g.name);
+      var hasSubs = g.subs && g.subs.length;
+      var active = state.menu === g.name;
+      var hasActive = state.menu && groupOf(state.menu) === g.name;
+      var open = !!openGroups[g.name];
+
+      var group = h('div', {
+        class: 'nav-group' + (hasSubs ? '' : ' leaf') + (open ? ' open' : '') + (hasActive && hasSubs ? ' has-active' : '')
+      });
+
+      group.appendChild(h('button', {
+        type: 'button',
+        class: 'nav-main' + (active ? ' active' : '') + (tests.length ? '' : ' nav-empty'),
+        'aria-expanded': hasSubs ? String(open) : null,
+        onclick: function () {
+          if (!hasSubs) { selectMenu(g.name); return; }
+          // first click selects the module (all its tests); next click collapses it
+          if (state.menu === g.name && open) { openGroups[g.name] = false; saveOpen(); renderSidebar(); return; }
+          selectMenu(g.name);
+        }
+      }, [
+        h('span', { class: 'nav-icon', html: svgIcon(g.icon) }),
+        h('span', { class: 'nav-label', text: g.name }),
+        cnts(tests),
+        hasSubs ? h('span', { html: '<svg class="nav-chev" viewBox="0 0 16 16"><path d="M6 3l5 5-5 5"/></svg>' }).firstChild : null
+      ]));
+
+      if (hasSubs) {
+        var subs = h('div', { class: 'nav-subs' });
+        g.subs.forEach(function (s) {
+          var key = g.name + '/' + s.name;
+          var st = testsIn(key);
+          subs.appendChild(h('button', {
+            type: 'button',
+            class: 'nav-sub' + (state.menu === key ? ' active' : '') + (st.length ? '' : ' nav-empty'),
+            onclick: function () { selectMenu(key); }
+          }, [
+            h('i', { class: 'radio' }),
+            h('span', { class: 'nav-sub-label', text: s.name }),
+            cnts(st)
+          ]));
+        });
+        group.appendChild(subs);
+      }
+      nav.appendChild(group);
+    });
+  }
+
+  // ---------- main ----------
+  function donut(c) {
+    var R = 42, CIRC = 2 * Math.PI * R, drawn = 0;
+    var segs = [['pass', c.ok], ['fail', c.failed], ['known', c.known], ['skip', c.skipped + c.pending]];
+    var svg = '<svg class="donut" width="112" height="112" viewBox="0 0 112 112"><circle class="bg" cx="56" cy="56" r="42"></circle>';
+    segs.forEach(function (s) {
+      var len = c.total ? (s[1] / c.total) * CIRC : 0;
+      if (len) svg += '<circle class="' + s[0] + '" cx="56" cy="56" r="42" stroke-dasharray="' + len + ' ' + (CIRC - len) + '" stroke-dashoffset="' + (-drawn) + '"></circle>';
+      drawn += len;
+    });
+    svg += '</svg>';
+    var executed = c.total - c.skipped - c.pending;
+    var pct = executed ? (100 * (c.ok + c.known) / executed) : 0;
+    return h('div', { class: 'donut-wrap' }, [
+      h('span', { html: svg }).firstChild,
+      h('div', { class: 'donut-label' }, [h('strong', { text: (Math.round(pct * 100) / 100) + '%' }), h('span', { text: 'Pass rate' })])
+    ]);
+  }
+
+  function breadcrumb() {
+    var card = h('div', { class: 'breadcrumb-card' });
+    if (!state.menu) {
+      card.appendChild(h('b', { text: 'Test Execution' }));
+      card.appendChild(h('span', { class: 'sep', text: '>' }));
+      card.appendChild(document.createTextNode('All Modules'));
+      return card;
+    }
+    var parts = state.menu.split('/');
+    card.appendChild(h('button', { type: 'button', text: 'Test Execution', onclick: function () { selectMenu(''); } }));
+    parts.forEach(function (p, i) {
+      card.appendChild(h('span', { class: 'sep', text: '>' }));
+      var key = parts.slice(0, i + 1).join('/');
+      var last = i === parts.length - 1 && !state.feature;
+      card.appendChild(last ? h('b', { text: p }) : h('button', { type: 'button', text: p, onclick: function () { selectMenu(key); } }));
+    });
+    if (state.feature) {
+      card.appendChild(h('span', { class: 'sep', text: '>' }));
+      card.appendChild(h('b', { text: state.feature }));
+    }
+    return card;
+  }
+
+  function summary(scope) {
+    var c = countOf(scope);
+    var title = state.feature || (state.menu ? state.menu.split('/').pop() : 'Test Execution');
+    var metrics = [['total', 'Total', c.total], ['failed', 'Failed', c.failed], ['passed', 'Passed', c.ok], ['skipped', 'Skipped', c.skipped + c.pending]];
+    if (c.known) metrics.splice(2, 0, ['known', 'Known bugs', c.known]);
+    if (c.flaky) metrics.push(['flaky', 'Flaky', c.flaky]);
+
+    var meta = [['Environment', DATA.environment || '-'], ['Browser', DATA.browsers.join(', ') || '-'], ['Platform', DATA.platform],
+      ['Workers', DATA.workers], ['Duration', state.menu ? fmtDur(c.duration) : fmtDur(DATA.elapsed)], ['Started', fmtDate(DATA.startTime)]];
+    if (DATA.author) meta.push(['Executed by', DATA.author]);
+
+    return h('section', { class: 'summary-header' }, [
+      h('div', { class: 'summary-title-row' }, [
+        h('div', null, [h('h1', { text: title }), h('p', { text: state.menu ? menuPath() : DATA.subtitle })]),
+        h('div', { class: 'run-info', text: fmtDate(DATA.startTime) + (DATA.finished ? '' : '  \u00B7  Running') })
+      ]),
+      h('div', { class: 'summary-main' }, [
+        h('div', { class: 'summary-numbers' }, metrics.map(function (m) {
+          return h('div', { class: 'metric ' + m[0] }, [h('span', { class: 'metric-label', text: m[1] }), h('strong', { text: String(m[2]) })]);
+        })),
+        donut(c)
+      ]),
+      h('div', { class: 'metadata-row' }, meta.map(function (m) { return h('span', null, [h('b', { text: m[0] }), String(m[1])]); }))
+    ]);
+  }
+  function menuPath() { return state.menu.split('/').concat(state.feature ? [state.feature] : []).join(SEP); }
+
+  function featureTabs() {
+    if (!state.menu) return null;
+    var sub = subDef(state.menu);
+    var features = sub && sub.features ? sub.features.slice() : [];
+    testsIn(state.menu).forEach(function (t) {
+      if (t.menu === state.menu && t.feature && features.indexOf(t.feature) < 0) features.push(t.feature);
+    });
+    if (!features.length) return null;
+
+    var all = testsIn(state.menu);
+    var bar = h('div', { class: 'feature-tabs', role: 'tablist', 'aria-label': 'Features' });
+    bar.appendChild(h('button', {
+      type: 'button', class: 'ftab', role: 'tab', 'aria-selected': String(!state.feature),
+      onclick: function () { selectMenu(state.menu); }
+    }, ['All', cnts(all)]));
+    features.forEach(function (f) {
+      var ft = testsIn(state.menu, f);
+      bar.appendChild(h('button', {
+        type: 'button', class: 'ftab' + (ft.length ? '' : ' empty'), role: 'tab', 'aria-selected': String(state.feature === f),
+        title: ft.length ? '' : 'No tests for ' + f + ' yet',
+        onclick: function () { selectMenu(state.menu, f); }
+      }, [f, cnts(ft)]));
+    });
+    return bar;
+  }
+
+  function toolbar(scope) {
+    var c = countOf(scope);
+    var tabs = [['all', 'Results', c.total, ''], ['failed', 'Failed', c.failed, 'red'], ['passed', 'Passed', c.passed, 'green'], ['skipped', 'Skipped', c.skipped, 'gray']];
+    if (c.known) tabs.splice(2, 0, ['known', 'Known bugs', c.known, 'purple']);
+    if (c.flaky) tabs.push(['flaky', 'Flaky', c.flaky, '']);
+    if (c.pending) tabs.push(['pending', 'Not run', c.pending, 'gray']);
+
+    var search = h('input', { type: 'search', placeholder: 'Search test cases', 'aria-label': 'Search test cases', value: state.query });
+    search.addEventListener('input', function () { state.query = search.value.trim().toLowerCase(); renderResults(); });
+
+    return h('div', { class: 'result-toolbar' }, [
+      h('div', { class: 'tabs', role: 'tablist', 'aria-label': 'Status' }, tabs.map(function (t) {
+        return h('button', {
+          type: 'button', class: 'tab', role: 'tab', 'aria-selected': String(state.status === t[0]),
+          onclick: function () { state.status = t[0]; renderMain(); }
+        }, [t[1], h('span', { class: t[3], text: String(t[2]) })]);
+      })),
+      h('div', { class: 'toolbar-right' }, [
+        h('label', { class: 'search-box' }, [h('span', { text: '\u2315' }), search]),
+        h('button', { type: 'button', class: 'tool-btn', text: 'Expand all', onclick: function () { setAll(true); } }),
+        h('button', { type: 'button', class: 'tool-btn', text: 'Collapse all', onclick: function () { setAll(false); } })
+      ])
+    ]);
+  }
+
+  function statBits(c) {
+    var out = [];
+    ORDER.forEach(function (s) { if (c[s]) out.push(h('span', { class: 'stat ' + s, text: c[s] + ' ' + STATUS[s].toLowerCase() })); });
+    return out;
+  }
+  function bar(c) {
+    var el = h('span', { class: 'bar' });
+    ['passed', 'flaky', 'known', 'failed', 'skipped', 'pending'].forEach(function (s) {
+      if (c[s]) el.appendChild(h('i', { class: s, style: 'width:' + (100 * c[s] / c.total) + '%' }));
+    });
+    return el;
+  }
+
+  function testDetail(t) {
+    var panel = h('div', { class: 'detail-panel' });
+    function section(title, content, open) {
+      panel.appendChild(h('details', { class: 'detail-section', open: open }, [h('summary', { text: title }), h('div', { class: 'section-content' }, content)]));
+    }
+    if (t.error) {
+      var box = h('div', { class: 'error-box' }, [h('pre', { class: 'error-message', text: t.error })]);
+      if (t.snippet) box.appendChild(h('pre', { class: 'snippet', text: t.snippet }));
+      if (t.stack) box.appendChild(h('details', { class: 'stack-details' }, [h('summary', { text: 'Call Stack' }), h('pre', { text: t.stack })]));
+      section('Errors', [box], true);
+    }
+    if (t.screenshot) {
+      section('Screenshot', [h('img', { class: 'shot', src: t.screenshot, alt: 'Screenshot at failure: ' + t.title, loading: 'lazy', onclick: function () { openShot(t.screenshot); } })], true);
+    }
+    if (t.steps.length) {
+      var list = h('ul', { class: 'steps' });
+      t.steps.forEach(function (s) {
+        list.appendChild(h('li', { class: s.error ? 'bad' : '', style: 'padding-left:' + (s.depth * 18) + 'px' }, [
+          h('span', { text: s.error ? '\u2715' : '\u2713' }),
+          h('span', { class: 's-title', title: s.title, text: s.title }),
+          h('span', { class: 's-time', text: fmtDur(s.duration) })
+        ]));
+      });
+      section('Steps (' + t.steps.length + ')', [list], t.status === 'failed');
+    }
+    if (t.logs.length) {
+      section('Test Logs (' + t.logs.length + ' lines)', [h('div', { class: 'console' }, t.logs.map(function (l) { return h('div', { text: l }); }))], !t.error);
+    }
+    if (!panel.children.length) {
+      panel.appendChild(h('div', { class: 'empty-results', text: t.status === 'pending' ? 'Not run yet.' : 'No details recorded.' }));
+    }
+    return panel;
+  }
+
+  function testItem(t) {
+    var expanded = !!openTests[t.id];
+    var item = h('div', { class: 'test-item ' + t.status + (expanded ? ' expanded' : '') });
+    var detail = h('div', { class: 'test-detail-row' });
+    var filled = false;
+    function fill() { if (!filled) { detail.appendChild(testDetail(t)); filled = true; } }
+    if (expanded) fill();
+
+    var meta = [h('span', { class: 'module-chip', text: menuLabel(t) }), h('span', { text: t.file + ':' + t.line })];
+    if (t.retry) meta.push(h('span', { class: 'tag retry', text: 'retry ' + t.retry }));
+    t.annotations.forEach(function (a) { meta.push(h('span', { class: 'tag note', text: a })); });
+    meta.push(h('span', { class: 'meta-spacer' }));
+    if (t.screenshot) meta.push(h('button', { type: 'button', class: 'link-btn', text: 'Screenshot', onclick: function () { openShot(t.screenshot); } }));
+
+    item.appendChild(h('button', {
+      type: 'button', class: 'test-row-main', 'aria-expanded': String(expanded),
+      onclick: function () {
+        var now = !item.classList.contains('expanded');
+        if (now) fill();
+        item.classList.toggle('expanded', now);
+        this.setAttribute('aria-expanded', String(now));
+        openTests[t.id] = now;
+      }
+    }, [
+      h('span', { html: CHEV }).firstChild,
+      h('span', { class: 'status-dot ' + t.status }),
+      h('span', { class: 'test-main-info' }, [
+        h('div', { class: 'test-title', title: t.title, text: t.title }),
+        h('div', { class: 'test-subtitle', text: t.file + (t.describe ? SEP + t.describe : '') })
+      ]),
+      h('span', { class: 'result-duration', text: t.status === 'pending' ? '' : fmtDur(t.duration) }),
+      h('span', { class: 'result-status ' + t.status, text: STATUS[t.status] })
+    ]));
+    item.appendChild(h('div', { class: 'test-meta-line' }, meta));
+    item.appendChild(detail);
+    return item;
+  }
+
+  function renderResults() {
+    var list = document.getElementById('testList');
+    var count = document.getElementById('listCount');
+    if (!list) return;
+    list.innerHTML = '';
+
+    var scope = testsIn(state.menu, state.feature);
+    var shown = scope.filter(matches);
+    count.textContent = shown.length + ' results';
+
+    if (!scope.length) {
+      list.appendChild(h('div', { class: 'empty-results', text: 'No test cases for this module in this run.' }));
+      return;
+    }
+    if (!shown.length) {
+      list.appendChild(h('div', { class: 'empty-results', text: 'No test cases match this filter.' }));
+      return;
+    }
+
+    // Group by portal page (menu + feature), in run order
+    var groups = [], byKey = {};
+    shown.forEach(function (t) {
+      var key = menuLabel(t);
+      if (!byKey[key]) { byKey[key] = { key: key, tests: [] }; groups.push(byKey[key]); }
+      byKey[key].tests.push(t);
+    });
+
+    groups.forEach(function (g) {
+      var all = scope.filter(function (t) { return menuLabel(t) === g.key; });
+      var c = countOf(all);
+      var open = !closedTestGroups[g.key];
+      var wrap = h('div', { class: 'test-group' + (open ? ' open' : '') });
+      wrap.appendChild(h('button', {
+        type: 'button', class: 'group-head', 'aria-expanded': String(open),
+        onclick: function () {
+          var now = !wrap.classList.contains('open');
+          wrap.classList.toggle('open', now);
+          this.setAttribute('aria-expanded', String(now));
+          closedTestGroups[g.key] = !now;
+        }
+      }, [
+        h('span', { html: CHEV }).firstChild,
+        h('span', { class: 'group-title', text: g.key }),
+        h('span', { class: 'group-stats' }, statBits(c).concat([bar(c), h('span', { text: fmtDur(c.duration) })]))
+      ]));
+      wrap.appendChild(h('div', { class: 'group-body' }, g.tests.map(testItem)));
+      list.appendChild(wrap);
+    });
+  }
+
+  function setAll(open) {
+    var scope = testsIn(state.menu, state.feature).filter(matches);
+    scope.forEach(function (t) { openTests[t.id] = open; closedTestGroups[menuLabel(t)] = !open; });
+    renderResults();
+  }
+
+  function renderMain() {
+    var main = document.getElementById('main');
+    main.innerHTML = '';
+    var scope = testsIn(state.menu, state.feature);
+    main.appendChild(breadcrumb());
+    main.appendChild(summary(scope));
+    var ft = featureTabs();
+    if (ft) main.appendChild(ft);
+    main.appendChild(toolbar(scope));
+    main.appendChild(h('div', { class: 'results-card' }, [
+      h('div', { class: 'result-list-header' }, [h('span', { text: 'TEST CASES' }), h('span', { id: 'listCount' })]),
+      h('div', { id: 'testList' })
+    ]));
+    renderResults();
+  }
+
+  function renderHeader() {
+    document.getElementById('brandTitle').textContent = DATA.title;
+    var c = countOf(DATA.tests);
+    var actions = document.getElementById('headerActions');
+    actions.innerHTML = '';
+    if (DATA.environment) actions.appendChild(h('span', { class: 'env-pill', text: DATA.environment }));
+    if (!DATA.finished) actions.appendChild(h('span', { class: 'live', text: '\u25CF Running \u2014 refresh for updates' }));
+    actions.appendChild(h('span', { class: 'header-date', text: fmtDate(DATA.startTime) }));
+    actions.appendChild(h('button', {
+      type: 'button', class: 'bell', style: 'border:0;background:none', title: c.failed + ' failed tests', 'aria-label': c.failed + ' failed tests',
+      html: '<svg viewBox="0 0 24 24"><path d="M12 22a2.5 2.5 0 0 0 2.4-2h-4.8A2.5 2.5 0 0 0 12 22zm7-6V11a7 7 0 0 0-5.5-6.8V3.5a1.5 1.5 0 0 0-3 0v.7A7 7 0 0 0 5 11v5l-2 2v1h18v-1z"/></svg>' + (c.failed ? '<i class="bell-badge">' + c.failed + '</i>' : ''),
+      onclick: function () { state.status = c.failed ? 'failed' : 'all'; selectMenu(''); }
+    }));
+  }
+
+  function render() { renderSidebar(); renderMain(); }
+
+  // ---------- screenshot modal ----------
+  var modal = document.getElementById('shotModal');
+  function openShot(src) { document.getElementById('shotImg').src = src; modal.classList.add('active'); }
+  modal.addEventListener('click', function (e) { if (e.target !== document.getElementById('shotImg')) modal.classList.remove('active'); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') modal.classList.remove('active'); });
+  document.getElementById('menuToggle').addEventListener('click', function () { document.getElementById('appShell').classList.toggle('collapsed'); });
+
+  // ---------- start ----------
+  restoreOpen();
+  try {
+    var hash = decodeURIComponent(location.hash.slice(1));
+    if (hash) { state.menu = hash.split('|')[0]; state.feature = hash.split('|')[1] || ''; }
+  } catch (e) {}
+  // Open the menu groups that have failures, plus the selected one
+  MENU.forEach(function (g) {
+    if (openGroups[g.name] === undefined && countOf(testsIn(g.name)).failed) openGroups[g.name] = true;
+  });
+  if (state.menu) openGroups[groupOf(state.menu)] = true;
+
+  renderHeader();
+  render();
+})();
+</script>
+</body>
+</html>
